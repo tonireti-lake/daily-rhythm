@@ -248,7 +248,7 @@
       {id:'eat', name:'Mindful meal', sub:'rate how mindful you ate', iconName:'bowl', time:'14:00', tracker:'meal'},
       {id:'hydrate', name:'Hydration', sub:'goal 80 oz across the day', iconName:'droplet', time:'14:00', tracker:'hydrate'},
       {id:'reset', name:'Work-stress reset', sub:'5 min reset, plus 90 min GTD today', iconName:'wind', time:'14:30', tracker:'gtd'},
-      {id:'shutdown', name:'Shutdown ritual', sub:"Close laptop, write tomorrow's top 3", iconName:'power', time:'17:30'}
+      {id:'shutdown', name:'Shutdown ritual', sub:"Close laptop, write tomorrow's top 3", iconName:'power', time:'17:30', tracker:'shutdown'}
     ];
   }
 
@@ -265,7 +265,7 @@
 
   let selectedISO = todayISO();
 
-  function blankDay(){ return {checks:{}, energy:null, grat:'', well:'', drain:'', gtd:0, workoutMin:0, hydrationOz:0, mealRating:0, mealNote:''}; }
+  function blankDay(){ return {checks:{}, energy:null, grat:'', well:'', drain:'', gtd:0, workoutMin:0, hydrationOz:0, mealRating:0, mealNote:'', top3:['','','']}; }
   function getDay(iso){ return lsGet('day:'+iso); }
   function setDay(iso, d){ lsSet('day:'+iso, d); pushToSheet(iso, d); }
   function getPrefs(){ return lsGet('prefs') || {office:true, wake:'06:00'}; }
@@ -280,6 +280,8 @@
     if(d.hydrationOz === undefined) d.hydrationOz = 0;
     if(d.mealRating === undefined) d.mealRating = 0;
     if(d.mealNote === undefined) d.mealNote = '';
+    if(!Array.isArray(d.top3)) d.top3 = ['','',''];
+    while(d.top3.length < 3) d.top3.push('');
     if(!d.checks) d.checks = {};
     return d;
   }
@@ -322,7 +324,7 @@
       if(res && res.ok && res.days){
         Object.keys(res.days).forEach(iso => {
           const rm = res.days[iso];
-          lsSet('day:'+iso, {checks:rm.checks||{}, energy:rm.energy, grat:rm.grat||'', well:rm.well||'', drain:rm.drain||'', gtd:rm.gtd||0, workoutMin:rm.workoutMin||0, hydrationOz:rm.hydrationOz||0, mealRating:rm.mealRating||0, mealNote:rm.mealNote||''});
+          lsSet('day:'+iso, {checks:rm.checks||{}, energy:rm.energy, grat:rm.grat||'', well:rm.well||'', drain:rm.drain||'', gtd:rm.gtd||0, workoutMin:rm.workoutMin||0, hydrationOz:rm.hydrationOz||0, mealRating:rm.mealRating||0, mealNote:rm.mealNote||'', top3:Array.isArray(rm.top3)?rm.top3:['','','']});
         });
         setSyncStatus('Synced \u00b7 '+new Date().toLocaleTimeString(), '#1D9E75');
         loadSelected(); renderAll(); syncReflectionInputs();
@@ -418,6 +420,21 @@
     '</div>';
   }
 
+  function shutdownTracker(){
+    const t = state.top3 || ['','',''];
+    function field(i){
+      const v = (t[i]||'').replace(/"/g,'&quot;');
+      return '<div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">'+
+        '<span style="width:18px; height:18px; flex-shrink:0; border-radius:50%; background:#FBEAF0; color:#993556; font-size:12px; font-weight:600; display:inline-flex; align-items:center; justify-content:center;">'+(i+1)+'</span>'+
+        '<input type="text" class="top3Input" data-idx="'+i+'" placeholder="Focus '+(i+1)+' for tomorrow..." value="'+v+'" style="flex:1;" />'+
+      '</div>';
+    }
+    return '<div class="tracker">'+
+      '<div class="tracker-head"><span style="font-size:13px; color:var(--text2);">Tomorrow\'s top 3</span></div>'+
+      field(0)+field(1)+field(2)+
+    '</div>';
+  }
+
   function renderBlocks(){
     const c = document.getElementById('blocks');
     c.innerHTML = '';
@@ -461,6 +478,9 @@
         } else if(p.tracker === 'meal'){
           w.innerHTML = mealTracker();
           wireMeal(w);
+        } else if(p.tracker === 'shutdown'){
+          w.innerHTML = shutdownTracker();
+          wireShutdown(w);
         }
         card.appendChild(w);
       }
@@ -503,6 +523,18 @@
       noteEl.addEventListener('click', e => e.stopPropagation());
       noteEl.addEventListener('change', () => { state.mealNote = noteEl.value; setDay(selectedISO, state); });
     }
+  }
+
+  function wireShutdown(wrap){
+    wrap.querySelectorAll('.top3Input').forEach(inp => {
+      inp.addEventListener('click', e => e.stopPropagation());
+      inp.addEventListener('change', () => {
+        const idx = parseInt(inp.getAttribute('data-idx'),10);
+        if(!Array.isArray(state.top3)) state.top3 = ['','',''];
+        state.top3[idx] = inp.value;
+        setDay(selectedISO, state);
+      });
+    });
   }
 
   function renderEnergy(){
