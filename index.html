@@ -433,8 +433,8 @@
       row.innerHTML =
         '<div style="width:36px; height:36px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; background:'+col.fill+'; color:'+col.icon+'; flex-shrink:0;">'+svgIcon(p.iconName, 19, col.icon)+'</div>'+
         '<div style="flex:1; min-width:0;">'+
-          '<p style="font-size:15px; font-weight:500; margin:0; '+(done?'text-decoration:line-through; opacity:0.65;':'')+'">'+p.name+'</p>'+
-          '<p style="font-size:13px; color:var(--text2); margin:1px 0 0;">'+fmtTime(p.time)+' \u00b7 '+p.sub+'</p>'+
+          '<p style="font-size:15px; font-weight:500; margin:0; color:'+(done?col.icon:'var(--text)')+'; '+(done?'text-decoration:line-through;':'')+'">'+p.name+'</p>'+
+          '<p style="font-size:13px; color:'+(done?col.icon:'var(--text2)')+'; opacity:'+(done?'0.85':'1')+'; margin:1px 0 0;">'+fmtTime(p.time)+' \u00b7 '+p.sub+'</p>'+
         '</div>'+
         '<div class="checkbox" style="width:25px; height:25px; border-radius:50%; border:2px solid '+(done?col.stroke:'var(--border2)')+'; background:'+(done?col.stroke:'transparent')+'; display:flex; align-items:center; justify-content:center; flex-shrink:0;">'+(done?'<span class="check-pop" style="display:inline-flex;">'+svgIcon('check',15,'#fff')+'</span>':'')+'</div>';
       row.addEventListener('click', () => {
