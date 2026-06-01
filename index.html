@@ -110,6 +110,17 @@
     <span id="bannerText"></span>
   </div>
 
+  <div class="panel" id="devotionalPanel" style="margin-top:0; margin-bottom:1.25rem; border-left:4px solid #7F77DD;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+      <span style="font-size:12px; letter-spacing:0.04em; text-transform:uppercase; color:#7F77DD; font-weight:600;">Daily devotional</span>
+      <span id="devTheme" style="font-size:12px; padding:3px 9px; border-radius:20px; background:#EEEDFE; color:#3C3489;"></span>
+    </div>
+    <p id="devRef" style="font-size:15px; font-weight:600; margin:0 0 2px; color:var(--text);"></p>
+    <p id="devVerse" style="font-size:14px; font-style:italic; color:var(--text2); margin:0 0 10px; line-height:1.5;"></p>
+    <p id="devBody" style="font-size:14px; color:var(--text); margin:0; line-height:1.6;"></p>
+    <p id="devSuggest" style="font-size:13px; color:var(--text2); margin:12px 0 0; padding-top:10px; border-top:0.5px solid var(--border); line-height:1.5;"></p>
+  </div>
+
   <div class="stats">
     <div class="stat">
       <p class="lbl" id="dayStatLabel">Today</p>
@@ -208,6 +219,146 @@
     const s = size || 18;
     const c = color || 'currentColor';
     return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true">'+p+'</svg>';
+  }
+
+  /* ===== Devotional system ===== */
+// Devotional library + selection logic. Built as standalone JS for testing first.
+// Themes: leadership, overwhelm, burnout, trust, faith
+// Scripture quoted briefly (NIV) under fair-use length; full passage via reference.
+
+const DEVOTIONALS = [
+  // ---- LEADERSHIP ----
+  {theme:'leadership', ref:'Proverbs 3:5-6', verse:'Trust in the Lord with all your heart and lean not on your own understanding.',
+   body:"Leadership tempts you to believe the weight rests on your judgment alone. Today, hold your decisions a little more loosely \u2014 bring the hard call to God before you bring it to the room. Leaning on Him is not abdicating responsibility; it is refusing to carry what was never yours to carry alone."},
+  {theme:'leadership', ref:'Micah 6:8', verse:'Act justly, love mercy, walk humbly with your God.',
+   body:"The metrics will measure your output, but they will never measure how you led. Justice, mercy, and humility are the quiet standard you answer to underneath the visible one. Lead one interaction today by that deeper scorecard."},
+  {theme:'leadership', ref:'Nehemiah 6:3', verse:'I am carrying on a great project and cannot go down.',
+   body:"Nehemiah named his work as worthy and refused the distractions that called him off the wall. You will be pulled at all day. Knowing what your wall is \u2014 the few things that truly matter \u2014 lets you say a clean no to the rest."},
+  {theme:'leadership', ref:'Exodus 18:18', verse:"The work is too heavy for you; you cannot handle it alone.",
+   body:"Jethro's counsel to Moses was not criticism but rescue: delegate, or be crushed. Strong leaders mistake bearing everything for faithfulness. Ask today what only you can do \u2014 and trust someone else with the rest."},
+
+  // ---- OVERWHELM ----
+  {theme:'overwhelm', ref:'Matthew 11:28', verse:'Come to me, all you who are weary and burdened, and I will give you rest.',
+   body:"The invitation is not to do more before you rest, but to come as you are \u2014 weary, behind, stretched thin. Rest here is not a reward for finishing; it is offered precisely because you haven't. Set the load down for a moment and breathe before you pick anything back up."},
+  {theme:'overwhelm', ref:'Psalm 46:10', verse:'Be still, and know that I am God.',
+   body:"Stillness feels irresponsible when everything is urgent. But the verse pairs being still with knowing \u2014 the pause is how you remember who actually holds it together, and it isn't you. A few still minutes this morning will not cost you the day; they may save it."},
+  {theme:'overwhelm', ref:'Psalm 61:2', verse:'Lead me to the rock that is higher than I.',
+   body:"When the volume of it all rises over your head, the prayer is simply to be lifted somewhere higher than your own capacity. You don't have to climb there by force of will. Ask to be led up, and let today's first move be that quiet request."},
+  {theme:'overwhelm', ref:'Lamentations 3:22-23', verse:'His compassions never fail. They are new every morning.',
+   body:"Whatever yesterday spent, this morning restocks. You are not running on the same depleted reserve you went to bed with. Receive the fresh mercy of today before you measure today's demands."},
+
+  // ---- BURNOUT ----
+  {theme:'burnout', ref:'1 Kings 19:5-7', verse:'Get up and eat, for the journey is too much for you.',
+   body:"When Elijah was spent to the point of wanting to quit, God's first provision was not a vision or a rebuke \u2014 it was food and sleep. Sometimes the most spiritual thing you can do is tend to your body. Honor the limit you're feeling rather than pushing past it again."},
+  {theme:'burnout', ref:'Mark 6:31', verse:'Come with me by yourselves to a quiet place and get some rest.',
+   body:"Jesus pulled his disciples away from the crowds and the good work precisely because there was too much of it. Withdrawing was his idea, not their weakness. Build one genuine pause into today, on purpose, with no apology."},
+  {theme:'burnout', ref:'Psalm 23:2-3', verse:'He makes me lie down in green pastures, he refreshes my soul.',
+   body:"Notice the verb \u2014 he makes me lie down. Sometimes rest is gently imposed because we won't choose it. If your body and spirit are forcing a stop, consider it shepherding, not failure. Let yourself be restored."},
+  {theme:'burnout', ref:'Isaiah 40:31', verse:'Those who hope in the Lord will renew their strength.',
+   body:"Renewal here is tied not to trying harder but to hoping \u2014 to waiting on God. The soaring and the running come after the renewing, not before. Today, let strength be something you receive rather than manufacture."},
+
+  // ---- TRUST IN GOD ----
+  {theme:'trust', ref:'Proverbs 16:9', verse:'In their hearts humans plan their course, but the Lord establishes their steps.',
+   body:"You can plan with all your skill and still hold the outcome with open hands. Planning is your part; establishing is His. When today doesn't go to your plan, it has not gone off His."},
+  {theme:'trust', ref:'Jeremiah 29:11', verse:'Plans to prosper you and not to harm you, plans to give you hope and a future.',
+   body:"In a season of uncertainty \u2014 a role decision, a hard quarter, an unclear path \u2014 the promise is not that you'll see the whole map, but that the One holding it means you well. Trust the cartographer when you can't read the route."},
+  {theme:'trust', ref:'Psalm 37:5', verse:'Commit your way to the Lord; trust in him and he will act.',
+   body:"There is relief in the order of that verse: you commit and trust; He acts. The pressure to force every outcome quietly lifts when you remember whose move comes after yours. Commit one specific worry to Him this morning and leave it there."},
+  {theme:'trust', ref:'Isaiah 26:3', verse:'You will keep in perfect peace those whose minds are steadfast, because they trust in you.',
+   body:"Peace here is not the absence of pressure but the result of where your mind is fixed. A steadfast mind isn't one without worries \u2014 it's one that keeps returning to God faster than it spirals. Practice the return today."},
+
+  // ---- DAILY FAITH ----
+  {theme:'faith', ref:'Matthew 6:34', verse:'Therefore do not worry about tomorrow, for tomorrow will worry about itself.',
+   body:"Faith is largely the discipline of staying inside today. Tomorrow's problems borrow against energy you need now and rarely arrive as imagined. Give today its due attention and let tomorrow keep its own."},
+  {theme:'faith', ref:'Lamentations 3:23', verse:'Great is your faithfulness.',
+   body:"Faith grows less by dramatic moments than by noticing, day after day, that God showed up again. Look back over this week for one concrete way you were carried. Naming it builds the trust you'll draw on tomorrow."},
+  {theme:'faith', ref:'Hebrews 11:1', verse:'Faith is confidence in what we hope for and assurance about what we do not see.',
+   body:"You lead daily on incomplete information \u2014 faith is simply that same posture turned toward God. You act on what you're sure of even without seeing the end. Take one faithful step today without needing the whole picture first."},
+  {theme:'faith', ref:'Zephaniah 3:17', verse:'The Lord your God is with you, the Mighty Warrior who saves.',
+   body:"Before you are a leader, a strategist, or a provider, you are someone God delights in and stands beside. Start today from being with Him rather than working toward Him. The presence comes first; the doing flows from it."}
+];
+
+// ---- selection ----
+
+// deterministic hash from a string -> int
+function hashStr(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0); }
+
+// Analyze recent days (array of day objects, most recent first) -> suggested theme or null
+function suggestTheme(recent){
+  // recent: [{checks, energy, drain, mealNote, gtd, workoutMin, hydrationOz}, ...]
+  const days = recent.filter(Boolean).slice(0,7);
+  if(days.length < 2) return null; // not enough signal
+
+  let lowEnergy=0, energyCount=0, drainNotes=0, missedLoad=0, loadDays=0, offPlan=0, highGtd=0;
+  days.forEach(d => {
+    if(d.energy != null){ energyCount++; if(d.energy <= 2) lowEnergy++; }
+    if(d.drain && d.drain.trim()) drainNotes++;
+    const done = Object.values(d.checks||{}).filter(Boolean).length;
+    loadDays++; if(done <= 3) missedLoad++;
+    if(d.mealNote && d.mealNote.trim()) offPlan++;
+    if((d.gtd||0) >= 90) highGtd++;
+  });
+
+  // scoring per theme based on signals
+  const score = {burnout:0, overwhelm:0, trust:0, leadership:0, faith:0};
+  if(energyCount){
+    const lowRate = lowEnergy/energyCount;
+    if(lowRate >= 0.5) score.burnout += 2;
+    else if(lowRate >= 0.3) score.overwhelm += 1;
+  }
+  if(drainNotes >= 3) score.overwhelm += 2;
+  else if(drainNotes >= 2) score.overwhelm += 1;
+  if(loadDays && missedLoad/loadDays >= 0.5) score.burnout += 2;
+  if(offPlan >= 3) score.overwhelm += 1;
+  if(highGtd >= 4) score.burnout += 1; // sustained heavy focus load
+
+  // pick highest-scoring theme if any clear signal
+  let best=null, bestScore=0;
+  Object.keys(score).forEach(t => { if(score[t] > bestScore){ bestScore=score[t]; best=t; } });
+  return bestScore >= 2 ? best : null;
+}
+
+// Pick the devotional for a given date, optionally biased toward a theme.
+function pickDevotional(iso, biasTheme){
+  const seed = hashStr(iso);
+  if(biasTheme){
+    const pool = DEVOTIONALS.filter(d => d.theme === biasTheme);
+    if(pool.length){ return pool[seed % pool.length]; }
+  }
+  // even rotation across all themes, date-seeded
+  return DEVOTIONALS[seed % DEVOTIONALS.length];
+}
+
+  function recentDaysFor(iso, n){
+    const out = [];
+    const base = new Date(iso+'T00:00:00');
+    for(let i=1;i<=n;i++){ const d=new Date(base); d.setDate(d.getDate()-i); const day=getDay(localISO(d)); out.push(day); }
+    return out;
+  }
+
+  function renderDevotional(){
+    // devotional for the selected day, biased by the days BEFORE it
+    const priorDays = recentDaysFor(selectedISO, 7);
+    const bias = suggestTheme(priorDays);
+    const dev = pickDevotional(selectedISO, bias);
+    const themeLabels = {leadership:'Leadership', overwhelm:'Overwhelm', burnout:'Rest & burnout', trust:'Trust in God', faith:'Daily faith'};
+    document.getElementById('devTheme').textContent = themeLabels[dev.theme] || dev.theme;
+    document.getElementById('devRef').textContent = dev.ref + ' (NIV)';
+    document.getElementById('devVerse').textContent = '\u201c' + dev.verse + '\u201d';
+    document.getElementById('devBody').textContent = dev.body;
+
+    // tomorrow's lean, based on selected day + the 6 before it (so it reflects current week incl today)
+    const throughToday = [getDay(selectedISO)].concat(recentDaysFor(selectedISO, 6));
+    const tomorrowBias = suggestTheme(throughToday);
+    const suggestEl = document.getElementById('devSuggest');
+    if(tomorrowBias){
+      const leanLabel = {burnout:'rest and recovery', overwhelm:'steadiness amid overwhelm', trust:'trust in God', leadership:'grounded leadership', faith:'daily faith'}[tomorrowBias];
+      suggestEl.textContent = 'Tomorrow leans toward ' + leanLabel + ', based on your recent days. Open the app tomorrow to receive it.';
+      suggestEl.style.display = 'block';
+    } else {
+      suggestEl.textContent = 'Your week looks steady \u2014 tomorrow continues the regular rotation through all themes.';
+      suggestEl.style.display = 'block';
+    }
   }
 
   const GTD_GOAL = 90;
@@ -699,7 +850,7 @@
     el.style.color = ok ? 'var(--success-text)' : '#A32D2D';
   }
 
-  function renderAll(){ renderWake(); renderDateNav(); renderHeader(); renderBlocks(); renderEnergy(); renderStats(); computeStreakAndRate(); renderHeatmap(); }
+  function renderAll(){ renderWake(); renderDateNav(); renderHeader(); renderDevotional(); renderBlocks(); renderEnergy(); renderStats(); computeStreakAndRate(); renderHeatmap(); }
 
   function shiftDay(delta){
     const d = new Date(selectedISO+'T00:00:00');
