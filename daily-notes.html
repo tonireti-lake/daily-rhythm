@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Notes</title>
+<style>
+  :root {
+    --bg: #faf9f5; --surface: #ffffff; --surface2: #f1efe8;
+    --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --radius-md: 8px; --radius-lg: 12px;
+    --accent: #7F77DD; --accent-bg:#EEEDFE; --accent-ink:#3C3489;
+    --success-bg: #e1f5ee; --success-text: #0f6e56;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1f1e1b; --surface: #2a2926; --surface2: #34322e;
+      --text: #f5f3ee; --text2: #b4b2a9; --text3: #888780;
+      --border: rgba(255,255,255,0.14); --border2: rgba(255,255,255,0.26);
+      --accent:#9b94e8; --accent-bg:#2e2a52; --accent-ink:#cecbf6;
+      --success-bg: #085041; --success-text: #9fe1cb;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--font); line-height:1.6; -webkit-font-smoothing:antialiased; }
+  .container { max-width:720px; margin:0 auto; padding:1.5rem 1.25rem 4rem; }
+  h1 { font-size:22px; font-weight:500; margin:0 0 0.25rem; }
+  .sub { font-size:13px; color:var(--text2); margin:0 0 1.5rem; }
+  input, button, textarea, select { font-family:var(--font); font-size:14px; }
+  input[type="date"], input[type="url"], input[type="text"] { padding:7px 10px; border:0.5px solid var(--border2); border-radius:var(--radius-md); background:var(--surface); color:var(--text); }
+  button { background:transparent; border:0.5px solid var(--border2); border-radius:var(--radius-md); color:var(--text); padding:7px 12px; cursor:pointer; transition:background 0.15s, transform 0.1s; }
+  button:hover { background:var(--surface2); }
+  button:active { transform:scale(0.98); }
+  label { font-size:13px; color:var(--text2); }
+  .datenav { display:flex; align-items:center; gap:8px; background:var(--surface2); border-radius:var(--radius-lg); padding:8px 10px; margin-bottom:1.25rem; }
+  .datenav button { padding:6px 10px; }
+  .datenav .spacer { flex:1; }
+  .pastpill { display:none; font-size:12px; padding:3px 9px; border-radius:20px; background:#FAEEDA; color:#854F0B; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:1rem; }
+  .panel { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:1rem 1.25rem; margin-top:1.25rem; }
+  .panel h2 { font-size:16px; font-weight:500; margin:0 0 12px; display:flex; align-items:center; gap:8px; }
+  .toolbar { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; padding-bottom:8px; border-bottom:0.5px solid var(--border); }
+  .toolbar button { padding:6px 10px; min-width:36px; font-size:14px; }
+  .toolbar button.active { background:var(--accent-bg); border-color:var(--accent); color:var(--accent-ink); }
+  .editor { min-height:200px; padding:12px 14px; border:0.5px solid var(--border2); border-radius:var(--radius-md); background:var(--surface); color:var(--text); line-height:1.7; outline:none; font-size:15px; }
+  .editor:focus { border-color:var(--accent); }
+  .editor:empty:before { content:attr(data-placeholder); color:var(--text3); }
+  .editor ul, .editor ol { margin:0.4em 0; padding-left:1.5em; }
+  .editor h3 { font-size:17px; margin:0.6em 0 0.3em; }
+  .savedflag { font-size:13px; color:var(--success-text); opacity:0; transition:opacity 0.2s; }
+  .todo-add { display:flex; gap:8px; margin-bottom:12px; }
+  .todo-add input { flex:1; }
+  .todo { display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:0.5px solid var(--border); border-radius:var(--radius-md); margin-bottom:8px; background:var(--surface); }
+  .todo .num { width:24px; height:24px; flex-shrink:0; border-radius:6px; background:var(--surface2); color:var(--text2); font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center; margin-top:1px; cursor:grab; }
+  .todo.dragging { opacity:0.5; }
+  .todo.dragover { border-color:var(--accent); border-style:dashed; }
+  .prio { font-size:10px; font-weight:700; letter-spacing:0.03em; padding:2px 8px; border-radius:10px; cursor:pointer; user-select:none; border:none; }
+  .prio-high { background:#FBE3E3; color:#A32D2D; }
+  .prio-med  { background:#FAEEDA; color:#854F0B; }
+  .prio-low  { background:#E1F5EE; color:#0F6E56; }
+  @media (prefers-color-scheme: dark) {
+    .prio-high { background:#4a1f1f; color:#f0a8a8; }
+    .prio-med  { background:#4a3410; color:#f6d8a6; }
+    .prio-low  { background:#0c3f33; color:#9fe1cb; }
+  }
+  .prio-select { display:flex; gap:4px; }
+  .prio-select button { padding:6px 10px; font-size:12px; font-weight:600; }
+  .prio-select button.sel-high { background:#FBE3E3; color:#A32D2D; border-color:#A32D2D; }
+  .prio-select button.sel-med  { background:#FAEEDA; color:#854F0B; border-color:#854F0B; }
+  .prio-select button.sel-low  { background:#E1F5EE; color:#0F6E56; border-color:#0F6E56; }
+  .todo.done { background:var(--surface2); }
+  .todo .box { width:22px; height:22px; flex-shrink:0; border-radius:50%; border:2px solid var(--border2); cursor:pointer; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+  .todo.done .box { background:var(--success-text); border-color:var(--success-text); }
+  .todo .txt { flex:1; min-width:0; }
+  .todo .txt[contenteditable]:focus { outline:none; border-bottom:1px solid var(--accent); }
+  .todo.done .txt { text-decoration:line-through; color:var(--text2); }
+  .todo .meta { font-size:11px; color:var(--text3); margin-top:2px; }
+  .todo .carried { display:inline-block; font-size:10px; padding:1px 7px; border-radius:10px; background:#FAEEDA; color:#854F0B; margin-left:6px; vertical-align:1px; }
+  .todo .del { background:transparent; border:none; color:var(--text3); cursor:pointer; padding:2px 6px; font-size:16px; line-height:1; }
+  .todo .del:hover { color:#A32D2D; }
+  .empty { font-size:13px; color:var(--text3); padding:8px 0; }
+  .syncdot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--text3); margin-right:6px; vertical-align:1px; }
+  .nav-links { font-size:13px; margin-bottom:1rem; }
+  .nav-links a { color:var(--accent); text-decoration:none; }
+  svg.ic { vertical-align:-0.15em; display:inline-block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Daily notes</h1>
+  <p class="sub">A fresh page each day, with an action tracker that carries your open items forward.</p>
+
+  <div class="datenav">
+    <button id="prevDay" aria-label="Previous day">&#8249;</button>
+    <input type="date" id="datePick" />
+    <button id="nextDay" aria-label="Next day">&#8250;</button>
+    <span class="spacer"></span>
+    <button id="todayBtn" style="font-size:13px;">Today</button>
+  </div>
+
+  <div class="topbar">
+    <div>
+      <p id="dateLabel" style="font-size:18px; font-weight:500; margin:0;"></p>
+      <p id="dayContext" style="font-size:13px; color:var(--text2); margin:2px 0 0;"></p>
+    </div>
+    <span id="pastPill" class="pastpill"></span>
+  </div>
+
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:1.25rem; flex-wrap:wrap;">
+    <span style="font-size:13px; color:var(--text2);">Theme color</span>
+    <div id="themeSwatches" style="display:flex; gap:6px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Action tracker</h2>
+    <div class="todo-add">
+      <input type="text" id="todoInput" placeholder="Add a to-do and press Enter..." />
+      <button id="todoAddBtn">Add</button>
+    </div>
+    <div class="prio-select" id="prioSelect" style="margin-bottom:14px;">
+      <span style="font-size:12px; color:var(--text2); align-self:center; margin-right:2px;">Priority:</span>
+      <button data-p="high">High</button>
+      <button data-p="med">Med</button>
+      <button data-p="low">Low</button>
+    </div>
+    <div id="openTodos"></div>
+    <p style="font-size:13px; color:var(--text2); margin:16px 0 8px; font-weight:500;">Completed today</p>
+    <div id="doneTodos"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Notes</h2>
+    <div class="toolbar" id="toolbar">
+      <button data-cmd="bold" title="Bold" style="font-weight:700;">B</button>
+      <button data-cmd="italic" title="Italic" style="font-style:italic;">I</button>
+      <button data-cmd="underline" title="Underline" style="text-decoration:underline;">U</button>
+      <button data-cmd="formatBlock" data-val="h3" title="Heading">H</button>
+      <button data-cmd="insertUnorderedList" title="Bullet list">&#8226; List</button>
+      <button data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+      <button data-cmd="removeFormat" title="Clear formatting">Clear</button>
+    </div>
+    <div id="editor" class="editor" contenteditable="true" data-placeholder="Start writing today's notes..."></div>
+    <div style="margin-top:8px;"><span id="notesSaved" class="savedflag">Saved</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>Google Sheets sync</h2>
+    <p style="font-size:13px; color:var(--text2); margin:0 0 12px;">Optional. Paste the same Apps Script URL you can use a notes-enabled script. Notes and to-dos sync across devices.</p>
+    <input type="url" id="syncUrl" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%; margin-bottom:8px;" />
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button id="saveUrl">Save URL</button>
+      <button id="syncNow">Sync now</button>
+      <button id="exportBtn">Export backup</button>
+      <button id="importBtn">Import backup</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;" />
+    </div>
+    <p id="syncStatus" style="font-size:13px; margin:12px 0 0;"><span class="syncdot" id="syncDot"></span><span id="syncText">Not connected — running on this device only.</span></p>
+    <p id="ioMsg" style="font-size:13px; margin:6px 0 0; min-height:18px;"></p>
+  </div>
+
+  <p class="nav-links" style="margin-top:1.5rem;">This is your notes page. Keep your <a href="index.html">daily rhythm dashboard</a> in a separate tab.</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const PREFIX = "drn_"; // daily rhythm notes — separate namespace from the dashboard
+
+  function lsGet(k){ try{ const v=localStorage.getItem(PREFIX+k); return v?JSON.parse(v):null; }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(PREFIX+k, JSON.stringify(v)); return true; }catch(e){ console.error(e); return false; } }
+
+  // ---- theme color ----
+  // Each theme tints the WHOLE page. Light mode: soft tinted shades. Dark mode: deep tinted shades.
+  // L = light mode {bg, surface, surface2, border, text, text2}, D = dark mode equivalents.
+  const THEMES = {
+    purple: {name:'Purple', accent:'#7F77DD', accentD:'#9b94e8', bgL:'#EEEDFE', inkL:'#3C3489', bgD:'#2e2a52', inkD:'#cecbf6',
+      L:{bg:'#f4f3fc', surface:'#ffffff', surface2:'#e9e7fa', border:'rgba(60,52,137,0.14)', text:'#241f47', text2:'#5b5680'},
+      D:{bg:'#1c1a2e', surface:'#272340', surface2:'#322d52', border:'rgba(206,203,246,0.16)', text:'#efedfb', text2:'#b3aed8'}},
+    teal:   {name:'Teal',   accent:'#1D9E75', accentD:'#3fbf97', bgL:'#E1F5EE', inkL:'#0F6E56', bgD:'#0c3f33', inkD:'#9fe1cb',
+      L:{bg:'#eef8f4', surface:'#ffffff', surface2:'#dcf1e9', border:'rgba(15,110,86,0.14)', text:'#0e3b2f', text2:'#3f6b5e'},
+      D:{bg:'#10241d', surface:'#163029', surface2:'#1d3d34', border:'rgba(159,225,203,0.16)', text:'#e6f5ef', text2:'#9dccba'}},
+    blue:   {name:'Blue',   accent:'#378ADD', accentD:'#5ba3ec', bgL:'#E6F1FB', inkL:'#0C447C', bgD:'#10324f', inkD:'#bfe0ff',
+      L:{bg:'#eef5fc', surface:'#ffffff', surface2:'#dbeafb', border:'rgba(12,68,124,0.14)', text:'#0d3257', text2:'#3d6b88'},
+      D:{bg:'#0f2236', surface:'#152d44', surface2:'#1b3a56', border:'rgba(191,224,255,0.16)', text:'#e6f1fd', text2:'#9dc2e6'}},
+    amber:  {name:'Amber',  accent:'#EF9F27', accentD:'#f2b04f', bgL:'#FAEEDA', inkL:'#854F0B', bgD:'#4a3410', inkD:'#f6d8a6',
+      L:{bg:'#fbf4e6', surface:'#ffffff', surface2:'#f6e8cf', border:'rgba(133,79,11,0.16)', text:'#4d340c', text2:'#7a6033'},
+      D:{bg:'#2b2110', surface:'#372b15', surface2:'#46371d', border:'rgba(246,216,166,0.16)', text:'#f6efe2', text2:'#cdb98f'}},
+    rose:   {name:'Rose',   accent:'#D4537E', accentD:'#e576a0', bgL:'#FBEAF0', inkL:'#993556', bgD:'#4d2236', inkD:'#f6c9da',
+      L:{bg:'#fbeef3', surface:'#ffffff', surface2:'#f7dde7', border:'rgba(153,53,86,0.15)', text:'#5a2238', text2:'#8a5166'},
+      D:{bg:'#2e1620', surface:'#3a1d2b', surface2:'#4a2536', border:'rgba(246,201,218,0.16)', text:'#f6e8ee', text2:'#d8a9bc'}},
+    slate:  {name:'Slate',  accent:'#5f6b7a', accentD:'#8a97a6', bgL:'#eceef1', inkL:'#36404d', bgD:'#2f363f', inkD:'#cdd4dc',
+      L:{bg:'#eef0f3', surface:'#ffffff', surface2:'#e0e4e9', border:'rgba(54,64,77,0.14)', text:'#2f3742', text2:'#5c6673'},
+      D:{bg:'#1d2127', surface:'#272c34', surface2:'#323842', border:'rgba(205,212,220,0.16)', text:'#eef1f4', text2:'#b0b8c2'}}
+  };
+
+  function isDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
+
+  function applyTheme(key){
+    const t = THEMES[key] || THEMES.purple;
+    const root = document.documentElement;
+    const dark = isDark();
+    const p = dark ? t.D : t.L;
+    // accent trio
+    root.style.setProperty('--accent', dark ? t.accentD : t.accent);
+    root.style.setProperty('--accent-bg', dark ? t.bgD : t.bgL);
+    root.style.setProperty('--accent-ink', dark ? t.inkD : t.inkL);
+    // full page shades
+    root.style.setProperty('--bg', p.bg);
+    root.style.setProperty('--surface', p.surface);
+    root.style.setProperty('--surface2', p.surface2);
+    root.style.setProperty('--border', p.border);
+    root.style.setProperty('--text', p.text);
+    root.style.setProperty('--text2', p.text2);
+  }
+
+  function renderSwatches(active){
+    const wrap = document.getElementById('themeSwatches');
+    wrap.innerHTML = '';
+    Object.keys(THEMES).forEach(key => {
+      const t = THEMES[key];
+      const b = document.createElement('button');
+      b.title = t.name;
+      b.setAttribute('aria-label', t.name);
+      const on = key === active;
+      b.style.cssText = 'width:26px; height:26px; padding:0; border-radius:50%; background:'+t.accent+'; cursor:pointer; border:2px solid '+(on?'var(--text)':'transparent')+'; box-shadow:0 0 0 1px var(--border);';
+      b.addEventListener('click', () => {
+        lsSet('theme', key); applyTheme(key); renderSwatches(key);
+      });
+      wrap.appendChild(b);
+    });
+  }
+
+
+  function localISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  const todayISO = () => localISO(new Date());
+  const fmtDate = (iso) => new Date(iso+'T00:00:00').toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+  const fmtShort = (iso) => new Date(iso+'T00:00:00').toLocaleDateString(undefined,{month:'short', day:'numeric'});
+
+  let selectedISO = todayISO();
+
+  // ---- data model ----
+  // notes: stored per day under 'notes:ISO' -> html string
+  // todos: a single global list under 'todos' -> [{id, text, done, created, completedOn}]
+  function getNotes(iso){ const n = lsGet('notes:'+iso); return n==null ? '' : n; }
+  function setNotes(iso, html){ lsSet('notes:'+iso, html); pushNotes(iso, html); }
+  function getTodos(){ return lsGet('todos') || []; }
+  function setTodos(list){ lsSet('todos', list); pushTodos(list); }
+
+  // ---- sync layer (optional) ----
+  let SYNC_URL = lsGet('syncUrl') || '';
+  let pushTimer = null, pending = {notes:{}, todos:false};
+  function setSyncStatus(t,c){ document.getElementById('syncText').textContent=t; document.getElementById('syncDot').style.background=c||'var(--text3)'; }
+  function pushNotes(iso, html){ if(!SYNC_URL) return; pending.notes[iso]=html; scheduleFlush(); }
+  function pushTodos(list){ if(!SYNC_URL) return; pending.todos=true; scheduleFlush(); }
+  function scheduleFlush(){ clearTimeout(pushTimer); pushTimer=setTimeout(flush, 800); }
+  function flush(){
+    if(!SYNC_URL) return;
+    const payload = { kind:'notes', notes: pending.notes, todos: pending.todos ? getTodos() : null };
+    pending = {notes:{}, todos:false};
+    fetch(SYNC_URL, {method:'POST', body:JSON.stringify(payload), headers:{'Content-Type':'text/plain;charset=utf-8'}})
+      .then(r=>r.json()).then(res=>{ setSyncStatus(res&&res.ok?'Synced · '+new Date().toLocaleTimeString():'Sync error — kept locally.', res&&res.ok?'#1D9E75':'#A32D2D'); })
+      .catch(()=> setSyncStatus('Offline — saved locally, use Sync now later.', '#EF9F27'));
+  }
+  function pull(cb){
+    if(!SYNC_URL){ if(cb)cb(); return; }
+    setSyncStatus('Syncing…','#378ADD');
+    fetch(SYNC_URL+'?kind=notes', {method:'GET'}).then(r=>r.json()).then(res=>{
+      if(res && res.ok){
+        if(res.notes){ Object.keys(res.notes).forEach(iso => lsSet('notes:'+iso, res.notes[iso])); }
+        if(Array.isArray(res.todos)){ lsSet('todos', res.todos); }
+        setSyncStatus('Synced · '+new Date().toLocaleTimeString(), '#1D9E75');
+        renderAll();
+      } else { setSyncStatus('Connected, no notes data yet.', '#EF9F27'); }
+      if(cb)cb();
+    }).catch(()=>{ setSyncStatus('Could not reach the Sheet — running locally.', '#A32D2D'); if(cb)cb(); });
+  }
+
+  // ---- rendering ----
+  function renderDateNav(){
+    document.getElementById('datePick').value = selectedISO;
+    document.getElementById('datePick').max = todayISO();
+    const isToday = selectedISO === todayISO();
+    document.getElementById('nextDay').disabled = isToday;
+    document.getElementById('nextDay').style.opacity = isToday ? '0.4':'1';
+    const pill = document.getElementById('pastPill');
+    if(isToday){ pill.style.display='none'; }
+    else {
+      pill.style.display='inline-block';
+      const diff = Math.round((new Date(todayISO()+'T00:00:00') - new Date(selectedISO+'T00:00:00'))/86400000);
+      pill.textContent = diff===1?'Yesterday':(diff>1?diff+' days ago':'Past date');
+    }
+  }
+  function renderHeader(){
+    document.getElementById('dateLabel').textContent = fmtDate(selectedISO);
+    const d = new Date(selectedISO+'T00:00:00').getDay();
+    document.getElementById('dayContext').textContent = (d===0||d===6) ? 'Weekend' : 'Weekday';
+  }
+
+  let notesSaveTimer=null;
+  function renderNotes(){
+    const ed = document.getElementById('editor');
+    ed.innerHTML = getNotes(selectedISO) || '';
+  }
+  function wireNotes(){
+    const ed = document.getElementById('editor');
+    ed.addEventListener('input', () => {
+      clearTimeout(notesSaveTimer);
+      notesSaveTimer = setTimeout(() => {
+        setNotes(selectedISO, ed.innerHTML);
+        const f=document.getElementById('notesSaved'); f.style.opacity='1'; setTimeout(()=>f.style.opacity='0',1200);
+      }, 500);
+    });
+    // toolbar
+    document.getElementById('toolbar').querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('mousedown', e => e.preventDefault()); // keep selection
+      btn.addEventListener('click', () => {
+        const cmd = btn.getAttribute('data-cmd');
+        const val = btn.getAttribute('data-val') || null;
+        if(cmd==='formatBlock'){
+          // toggle between h3 and p
+          document.execCommand('formatBlock', false, val);
+        } else {
+          document.execCommand(cmd, false, val);
+        }
+        ed.focus();
+        updateToolbarState();
+        // save after formatting
+        setNotes(selectedISO, ed.innerHTML);
+      });
+    });
+    ed.addEventListener('keyup', updateToolbarState);
+    ed.addEventListener('mouseup', updateToolbarState);
+  }
+  function updateToolbarState(){
+    [['bold','bold'],['italic','italic'],['underline','underline']].forEach(([cmd]) => {
+      const btn = document.querySelector('.toolbar button[data-cmd="'+cmd+'"]');
+      if(btn){ try { btn.classList.toggle('active', document.queryCommandState(cmd)); } catch(e){} }
+    });
+  }
+
+  let pendingPriority = 'med'; // default for the add row
+
+  function priorityClass(p){ return p==='high'?'prio-high':(p==='low'?'prio-low':'prio-med'); }
+  function priorityLabel(p){ return p==='high'?'HIGH':(p==='low'?'LOW':'MED'); }
+  function nextPriority(p){ return p==='high'?'med':(p==='med'?'low':'high'); }
+
+  // Ensure every open todo has an order value; assign by created date for any missing.
+  function ensureOrder(list){
+    let changed = false;
+    const open = list.filter(t => !t.done);
+    open.forEach(t => { if(typeof t.order !== 'number'){ t.order = 0; changed = true; } if(!t.priority){ t.priority = 'med'; changed = true; } });
+    // if many share order 0 (legacy), give them a stable sequence by created then id
+    const needSeq = open.filter(t => t.order === 0);
+    if(needSeq.length > 1){
+      needSeq.sort((a,b)=> (a.created<b.created?-1:a.created>b.created?1:(a.id<b.id?-1:1)));
+      needSeq.forEach((t,i)=> t.order = i);
+      changed = true;
+    }
+    return changed;
+  }
+
+  function renderTodos(){
+    let todos = getTodos();
+    if(ensureOrder(todos)) setTodos(todos);
+    const openWrap = document.getElementById('openTodos');
+    const doneWrap = document.getElementById('doneTodos');
+    openWrap.innerHTML=''; doneWrap.innerHTML='';
+
+    // OPEN: not-done, created on/before selected day, sorted by manual order
+    const open = todos.filter(t => !t.done && t.created <= selectedISO).sort((a,b)=> a.order - b.order);
+    const doneToday = todos.filter(t => t.done && t.completedOn === selectedISO);
+
+    if(open.length===0){ openWrap.innerHTML='<p class="empty">No open to-dos. Add one above.</p>'; }
+    open.forEach((t, i) => openWrap.appendChild(todoEl(t, i+1)));
+
+    if(doneToday.length===0){ doneWrap.innerHTML='<p class="empty">Nothing checked off yet today.</p>'; }
+    doneToday.forEach(t => doneWrap.appendChild(todoEl(t, null)));
+  }
+
+  function todoEl(t, number){
+    const el = document.createElement('div');
+    el.className = 'todo' + (t.done?' done':'');
+    el.dataset.id = t.id;
+    const carried = (!t.done && t.created < selectedISO);
+    const prio = t.priority || 'med';
+
+    const numOrCheck = t.done
+      ? '<div class="box" role="checkbox" aria-checked="true"><svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></div>'
+      : '<div class="num" draggable="true" title="Drag to reorder">'+number+'</div>';
+
+    el.innerHTML =
+      numOrCheck +
+      (t.done ? '' : '<div class="box" role="checkbox" aria-checked="false" style="margin-top:1px;"></div>') +
+      '<div style="flex:1; min-width:0;">'+
+        '<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">'+
+          '<div class="txt" contenteditable="true" style="flex:1; min-width:120px;">'+escapeHtml(t.text)+'</div>'+
+          '<span class="prio '+priorityClass(prio)+'" role="button" title="Tap to change priority">'+priorityLabel(prio)+'</span>'+
+        '</div>'+
+        '<div class="meta">'+(t.done?('Done '+fmtShort(t.completedOn)):('Added '+fmtShort(t.created)))+(carried?'<span class="carried">carried from '+fmtShort(t.created)+'</span>':'')+'</div>'+
+      '</div>'+
+      '<button class="del" aria-label="Delete">&times;</button>';
+
+    // check-off (the box; for open items it's the second .box)
+    const box = el.querySelector('.box');
+    if(box){
+      box.addEventListener('click', () => {
+        const list = getTodos();
+        const item = list.find(x => x.id === t.id);
+        if(!item) return;
+        item.done = !item.done;
+        item.completedOn = item.done ? selectedISO : null;
+        setTodos(list); renderTodos(); // renumber happens automatically via order sort
+      });
+    }
+
+    // priority cycle on tap
+    const pill = el.querySelector('.prio');
+    if(pill){
+      pill.addEventListener('click', () => {
+        const list = getTodos(); const item = list.find(x=>x.id===t.id);
+        if(item){ item.priority = nextPriority(item.priority || 'med'); setTodos(list); renderTodos(); }
+      });
+    }
+
+    // edit text
+    const txt = el.querySelector('.txt');
+    txt.addEventListener('blur', () => {
+      const list = getTodos(); const item = list.find(x=>x.id===t.id);
+      if(item){ item.text = txt.textContent.trim(); setTodos(list); }
+    });
+    txt.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); txt.blur(); } });
+
+    // delete
+    el.querySelector('.del').addEventListener('click', () => {
+      let list = getTodos(); list = list.filter(x=>x.id!==t.id); setTodos(list); renderTodos();
+    });
+
+    // drag to reorder (open items only)
+    if(!t.done){
+      const handle = el.querySelector('.num');
+      handle.addEventListener('dragstart', e => {
+        el.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', t.id);
+      });
+      handle.addEventListener('dragend', () => el.classList.remove('dragging'));
+      el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('dragover'); e.dataTransfer.dropEffect='move'; });
+      el.addEventListener('dragleave', () => el.classList.remove('dragover'));
+      el.addEventListener('drop', e => {
+        e.preventDefault(); el.classList.remove('dragover');
+        const draggedId = e.dataTransfer.getData('text/plain');
+        if(!draggedId || draggedId === t.id) return;
+        reorderTodos(draggedId, t.id);
+      });
+    }
+
+    return el;
+  }
+
+  // Move dragged item to the position of the target item, then resequence order values.
+  function reorderTodos(draggedId, targetId){
+    const list = getTodos();
+    const open = list.filter(x => !x.done && x.created <= selectedISO).sort((a,b)=> a.order - b.order);
+    const fromIdx = open.findIndex(x => x.id === draggedId);
+    const toIdx = open.findIndex(x => x.id === targetId);
+    if(fromIdx === -1 || toIdx === -1) return;
+    const [moved] = open.splice(fromIdx, 1);
+    open.splice(toIdx, 0, moved);
+    open.forEach((t, i) => { const item = list.find(x=>x.id===t.id); if(item) item.order = i; });
+    setTodos(list); renderTodos();
+  }
+
+  function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function addTodo(){
+    const inp = document.getElementById('todoInput');
+    const text = inp.value.trim();
+    if(!text) return;
+    const list = getTodos();
+    // new item goes to the end of the open order
+    const maxOrder = list.filter(t=>!t.done).reduce((m,t)=> Math.max(m, typeof t.order==='number'?t.order:0), -1);
+    list.push({ id: 't'+Date.now()+Math.random().toString(36).slice(2,6), text, done:false, created:selectedISO, completedOn:null, order:maxOrder+1, priority:pendingPriority });
+    setTodos(list);
+    inp.value='';
+    renderTodos();
+  }
+
+  function wirePrioritySelect(){
+    const sel = document.getElementById('prioSelect');
+    function refresh(){
+      sel.querySelectorAll('button').forEach(b => {
+        const p = b.getAttribute('data-p');
+        b.classList.toggle('sel-'+p, p === pendingPriority);
+      });
+    }
+    sel.querySelectorAll('button').forEach(b => {
+      b.addEventListener('click', () => { pendingPriority = b.getAttribute('data-p'); refresh(); });
+    });
+    refresh();
+  }
+
+  function renderAll(){ renderDateNav(); renderHeader(); renderNotes(); renderTodos(); }
+
+  function shiftDay(delta){
+    const d = new Date(selectedISO+'T00:00:00'); d.setDate(d.getDate()+delta);
+    const iso = localISO(d); if(iso > todayISO()) return;
+    selectedISO = iso; renderAll();
+  }
+
+  // ---- backup ----
+  function exportData(){
+    const dump={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf(PREFIX)===0) dump[k]=localStorage.getItem(k); }
+    const payload={app:'daily-notes', version:1, exported:new Date().toISOString(), data:dump};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download='daily-notes-backup-'+todayISO()+'.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    msg('Exported backup.', true);
+  }
+  function importData(file){
+    const r=new FileReader();
+    r.onload=()=>{ try{ const p=JSON.parse(r.result); if(!p||p.app!=='daily-notes'||!p.data) throw new Error('Not a valid notes backup');
+      let c=0; Object.keys(p.data).forEach(k=>{ if(k.indexOf(PREFIX)===0){ localStorage.setItem(k,p.data[k]); c++; } });
+      renderAll(); msg('Imported '+c+' records.', true);
+    }catch(e){ msg('Could not import: '+e.message, false); } };
+    r.onerror=()=>msg('Could not read file.', false); r.readAsText(file);
+  }
+  function msg(t,ok){ const el=document.getElementById('ioMsg'); el.textContent=t; el.style.color=ok?'var(--success-text)':'#A32D2D'; }
+
+  // ---- wire controls ----
+  document.getElementById('prevDay').addEventListener('click', ()=>shiftDay(-1));
+  document.getElementById('nextDay').addEventListener('click', ()=>shiftDay(1));
+  document.getElementById('todayBtn').addEventListener('click', ()=>{ selectedISO=todayISO(); renderAll(); });
+  document.getElementById('datePick').addEventListener('change', e=>{ const v=e.target.value; if(!v) return; if(v>todayISO()){ e.target.value=selectedISO; return; } selectedISO=v; renderAll(); });
+  document.getElementById('todoAddBtn').addEventListener('click', addTodo);
+  document.getElementById('todoInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addTodo(); });
+  document.getElementById('saveUrl').addEventListener('click', ()=>{ const v=document.getElementById('syncUrl').value.trim(); SYNC_URL=v; lsSet('syncUrl', v); if(v){ msg('Sync URL saved.', true); pull(); } else { setSyncStatus('Not connected — running on this device only.'); msg('Sync URL cleared.', true); } });
+  document.getElementById('syncNow').addEventListener('click', ()=>{ flush(); pull(); });
+  document.getElementById('exportBtn').addEventListener('click', exportData);
+  document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=''; });
+
+  wireNotes();
+  wirePrioritySelect();
+  const savedTheme = lsGet('theme') || 'purple';
+  applyTheme(savedTheme);
+  renderSwatches(savedTheme);
+  if(window.matchMedia){
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(lsGet('theme') || 'purple'));
+  }
+  renderAll();
+  document.getElementById('syncUrl').value = SYNC_URL;
+  if(SYNC_URL){ pull(); }
+})();
+</script>
+</body>
+</html>
