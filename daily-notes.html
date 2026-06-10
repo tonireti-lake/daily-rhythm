@@ -30,7 +30,7 @@
   .sub { font-size:13px; color:var(--text2); margin:0 0 1.5rem; }
   input, button, textarea, select { font-family:var(--font); font-size:14px; }
   input[type="date"], input[type="url"], input[type="text"] { padding:7px 10px; border:0.5px solid var(--border2); border-radius:var(--radius-md); background:var(--surface); color:var(--text); }
-  button { background:transparent; border:0.5px solid var(--border2); border-radius:var(--radius-md); color:var(--text); padding:7px 12px; cursor:pointer; transition:background 0.15s, transform 0.1s; }
+  button { background:transparent; border:0.5px solid var(--border2); border-radius:var(--radius-md); color:var(--text); padding:7px 12px; cursor:pointer; transition:background 0.15s, transform 0.1s; touch-action:manipulation; }
   button:hover { background:var(--surface2); }
   button:active { transform:scale(0.98); }
   label { font-size:13px; color:var(--text2); }
@@ -67,9 +67,17 @@
   }
   .prio-select { display:flex; gap:4px; }
   .move { display:flex; flex-direction:column; gap:2px; flex-shrink:0; margin-top:1px; }
-  .move button { padding:0; width:24px; height:17px; font-size:11px; line-height:1; display:flex; align-items:center; justify-content:center; border-radius:5px; }
+  .move button { padding:0; width:28px; height:19px; font-size:11px; line-height:1; display:flex; align-items:center; justify-content:center; border-radius:5px; }
   .move button:disabled { opacity:0.3; cursor:default; }
-  .move .totop { height:15px; font-size:9px; }
+  .move .totop { height:16px; font-size:9px; }
+  @media (max-width: 560px) {
+    .todo { flex-wrap:wrap; }
+    .todo > div[style*="flex:1"] { flex-basis:calc(100% - 80px); }
+    .move { flex-direction:row; gap:6px; margin-top:8px; flex-basis:100%; justify-content:flex-end; order:5; }
+    .move button { width:auto; min-width:48px; height:34px; padding:0 12px; font-size:15px; }
+    .move .totop { height:34px; font-size:12px; min-width:54px; }
+    .todo .del { font-size:22px; padding:4px 10px; }
+  }
   .prio-select button { padding:6px 10px; font-size:12px; font-weight:600; }
   .prio-select button.sel-high { background:#FBE3E3; color:#A32D2D; border-color:#A32D2D; }
   .prio-select button.sel-med  { background:#FAEEDA; color:#854F0B; border-color:#854F0B; }
@@ -81,7 +89,6 @@
   .todo .txt[contenteditable]:focus { outline:none; border-bottom:1px solid var(--accent); }
   .todo.done .txt { text-decoration:line-through; color:var(--text2); }
   .todo .meta { font-size:11px; color:var(--text3); margin-top:2px; }
-  .todo .carried { display:inline-block; font-size:10px; padding:1px 7px; border-radius:10px; background:#FAEEDA; color:#854F0B; margin-left:6px; vertical-align:1px; }
   .todo .del { background:transparent; border:none; color:var(--text3); cursor:pointer; padding:2px 6px; font-size:16px; line-height:1; }
   .todo .del:hover { color:#A32D2D; }
   .empty { font-size:13px; color:var(--text3); padding:8px 0; }
@@ -387,7 +394,6 @@
     const el = document.createElement('div');
     el.className = 'todo' + (t.done?' done':'');
     el.dataset.id = t.id;
-    const carried = (!t.done && t.created < selectedISO);
     const prio = t.priority || 'med';
  
     const numOrCheck = t.done
@@ -409,7 +415,7 @@
           '<div class="txt" contenteditable="true" style="flex:1; min-width:120px;">'+escapeHtml(t.text)+'</div>'+
           '<span class="prio '+priorityClass(prio)+'" role="button" title="Tap to change priority">'+priorityLabel(prio)+'</span>'+
         '</div>'+
-        '<div class="meta">'+(t.done?('Done '+fmtShort(t.completedOn)):('Added '+fmtShort(t.created)))+(carried?'<span class="carried">carried from '+fmtShort(t.created)+'</span>':'')+'</div>'+
+        '<div class="meta">'+(t.done?('Done '+fmtShort(t.completedOn)):('Added '+fmtShort(t.created)))+'</div>'+
       '</div>'+
       moveControls +
       '<button class="del" aria-label="Delete">&times;</button>';
