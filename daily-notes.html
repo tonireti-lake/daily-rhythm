@@ -66,6 +66,10 @@
     .prio-low  { background:#0c3f33; color:#9fe1cb; }
   }
   .prio-select { display:flex; gap:4px; }
+  .move { display:flex; flex-direction:column; gap:2px; flex-shrink:0; margin-top:1px; }
+  .move button { padding:0; width:24px; height:17px; font-size:11px; line-height:1; display:flex; align-items:center; justify-content:center; border-radius:5px; }
+  .move button:disabled { opacity:0.3; cursor:default; }
+  .move .totop { height:15px; font-size:9px; }
   .prio-select button { padding:6px 10px; font-size:12px; font-weight:600; }
   .prio-select button.sel-high { background:#FBE3E3; color:#A32D2D; border-color:#A32D2D; }
   .prio-select button.sel-med  { background:#FAEEDA; color:#854F0B; border-color:#854F0B; }
@@ -91,7 +95,7 @@
 <div class="container">
   <h1>Daily notes</h1>
   <p class="sub">A fresh page each day, with an action tracker that carries your open items forward.</p>
-
+ 
   <div class="datenav">
     <button id="prevDay" aria-label="Previous day">&#8249;</button>
     <input type="date" id="datePick" />
@@ -99,7 +103,7 @@
     <span class="spacer"></span>
     <button id="todayBtn" style="font-size:13px;">Today</button>
   </div>
-
+ 
   <div class="topbar">
     <div>
       <p id="dateLabel" style="font-size:18px; font-weight:500; margin:0;"></p>
@@ -107,12 +111,12 @@
     </div>
     <span id="pastPill" class="pastpill"></span>
   </div>
-
+ 
   <div style="display:flex; align-items:center; gap:8px; margin-bottom:1.25rem; flex-wrap:wrap;">
     <span style="font-size:13px; color:var(--text2);">Theme color</span>
     <div id="themeSwatches" style="display:flex; gap:6px;"></div>
   </div>
-
+ 
   <div class="panel">
     <h2>Action tracker</h2>
     <div class="todo-add">
@@ -129,7 +133,7 @@
     <p style="font-size:13px; color:var(--text2); margin:16px 0 8px; font-weight:500;">Completed today</p>
     <div id="doneTodos"></div>
   </div>
-
+ 
   <div class="panel">
     <h2>Notes</h2>
     <div class="toolbar" id="toolbar">
@@ -144,7 +148,7 @@
     <div id="editor" class="editor" contenteditable="true" data-placeholder="Start writing today's notes..."></div>
     <div style="margin-top:8px;"><span id="notesSaved" class="savedflag">Saved</span></div>
   </div>
-
+ 
   <div class="panel">
     <h2>Google Sheets sync</h2>
     <p style="font-size:13px; color:var(--text2); margin:0 0 12px;">Optional. Paste the same Apps Script URL you can use a notes-enabled script. Notes and to-dos sync across devices.</p>
@@ -159,18 +163,18 @@
     <p id="syncStatus" style="font-size:13px; margin:12px 0 0;"><span class="syncdot" id="syncDot"></span><span id="syncText">Not connected — running on this device only.</span></p>
     <p id="ioMsg" style="font-size:13px; margin:6px 0 0; min-height:18px;"></p>
   </div>
-
+ 
   <p class="nav-links" style="margin-top:1.5rem;">This is your notes page. Keep your <a href="index.html">daily rhythm dashboard</a> in a separate tab.</p>
 </div>
-
+ 
 <script>
 (function(){
   "use strict";
   const PREFIX = "drn_"; // daily rhythm notes — separate namespace from the dashboard
-
+ 
   function lsGet(k){ try{ const v=localStorage.getItem(PREFIX+k); return v?JSON.parse(v):null; }catch(e){ return null; } }
   function lsSet(k,v){ try{ localStorage.setItem(PREFIX+k, JSON.stringify(v)); return true; }catch(e){ console.error(e); return false; } }
-
+ 
   // ---- theme color ----
   // Each theme tints the WHOLE page. Light mode: soft tinted shades. Dark mode: deep tinted shades.
   // L = light mode {bg, surface, surface2, border, text, text2}, D = dark mode equivalents.
@@ -194,9 +198,9 @@
       L:{bg:'#eef0f3', surface:'#ffffff', surface2:'#e0e4e9', border:'rgba(54,64,77,0.14)', text:'#2f3742', text2:'#5c6673'},
       D:{bg:'#1d2127', surface:'#272c34', surface2:'#323842', border:'rgba(205,212,220,0.16)', text:'#eef1f4', text2:'#b0b8c2'}}
   };
-
+ 
   function isDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
-
+ 
   function applyTheme(key){
     const t = THEMES[key] || THEMES.purple;
     const root = document.documentElement;
@@ -214,7 +218,7 @@
     root.style.setProperty('--text', p.text);
     root.style.setProperty('--text2', p.text2);
   }
-
+ 
   function renderSwatches(active){
     const wrap = document.getElementById('themeSwatches');
     wrap.innerHTML = '';
@@ -231,15 +235,15 @@
       wrap.appendChild(b);
     });
   }
-
-
+ 
+ 
   function localISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   const todayISO = () => localISO(new Date());
   const fmtDate = (iso) => new Date(iso+'T00:00:00').toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
   const fmtShort = (iso) => new Date(iso+'T00:00:00').toLocaleDateString(undefined,{month:'short', day:'numeric'});
-
+ 
   let selectedISO = todayISO();
-
+ 
   // ---- data model ----
   // notes: stored per day under 'notes:ISO' -> html string
   // todos: a single global list under 'todos' -> [{id, text, done, created, completedOn}]
@@ -247,7 +251,7 @@
   function setNotes(iso, html){ lsSet('notes:'+iso, html); pushNotes(iso, html); }
   function getTodos(){ return lsGet('todos') || []; }
   function setTodos(list){ lsSet('todos', list); pushTodos(list); }
-
+ 
   // ---- sync layer (optional) ----
   let SYNC_URL = lsGet('syncUrl') || '';
   let pushTimer = null, pending = {notes:{}, todos:false};
@@ -276,7 +280,7 @@
       if(cb)cb();
     }).catch(()=>{ setSyncStatus('Could not reach the Sheet — running locally.', '#A32D2D'); if(cb)cb(); });
   }
-
+ 
   // ---- rendering ----
   function renderDateNav(){
     document.getElementById('datePick').value = selectedISO;
@@ -297,7 +301,7 @@
     const d = new Date(selectedISO+'T00:00:00').getDay();
     document.getElementById('dayContext').textContent = (d===0||d===6) ? 'Weekend' : 'Weekday';
   }
-
+ 
   let notesSaveTimer=null;
   function renderNotes(){
     const ed = document.getElementById('editor');
@@ -339,13 +343,13 @@
       if(btn){ try { btn.classList.toggle('active', document.queryCommandState(cmd)); } catch(e){} }
     });
   }
-
+ 
   let pendingPriority = 'med'; // default for the add row
-
+ 
   function priorityClass(p){ return p==='high'?'prio-high':(p==='low'?'prio-low':'prio-med'); }
   function priorityLabel(p){ return p==='high'?'HIGH':(p==='low'?'LOW':'MED'); }
   function nextPriority(p){ return p==='high'?'med':(p==='med'?'low':'high'); }
-
+ 
   // Ensure every open todo has an order value; assign by created date for any missing.
   function ensureOrder(list){
     let changed = false;
@@ -360,36 +364,43 @@
     }
     return changed;
   }
-
+ 
   function renderTodos(){
     let todos = getTodos();
     if(ensureOrder(todos)) setTodos(todos);
     const openWrap = document.getElementById('openTodos');
     const doneWrap = document.getElementById('doneTodos');
     openWrap.innerHTML=''; doneWrap.innerHTML='';
-
+ 
     // OPEN: not-done, created on/before selected day, sorted by manual order
     const open = todos.filter(t => !t.done && t.created <= selectedISO).sort((a,b)=> a.order - b.order);
     const doneToday = todos.filter(t => t.done && t.completedOn === selectedISO);
-
+ 
     if(open.length===0){ openWrap.innerHTML='<p class="empty">No open to-dos. Add one above.</p>'; }
-    open.forEach((t, i) => openWrap.appendChild(todoEl(t, i+1)));
-
+    open.forEach((t, i) => openWrap.appendChild(todoEl(t, i+1, open.length)));
+ 
     if(doneToday.length===0){ doneWrap.innerHTML='<p class="empty">Nothing checked off yet today.</p>'; }
-    doneToday.forEach(t => doneWrap.appendChild(todoEl(t, null)));
+    doneToday.forEach(t => doneWrap.appendChild(todoEl(t, null, 0)));
   }
-
-  function todoEl(t, number){
+ 
+  function todoEl(t, number, openCount){
     const el = document.createElement('div');
     el.className = 'todo' + (t.done?' done':'');
     el.dataset.id = t.id;
     const carried = (!t.done && t.created < selectedISO);
     const prio = t.priority || 'med';
-
+ 
     const numOrCheck = t.done
       ? '<div class="box" role="checkbox" aria-checked="true"><svg class="ic" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></div>'
       : '<div class="num" draggable="true" title="Drag to reorder">'+number+'</div>';
-
+ 
+    const moveControls = t.done ? '' :
+      '<div class="move">'+
+        '<button class="mv-up" aria-label="Move up" title="Move up"'+(number===1?' disabled':'')+'>&#9650;</button>'+
+        '<button class="mv-top totop" aria-label="Move to top" title="Move to top"'+(number===1?' disabled':'')+'>TOP</button>'+
+        '<button class="mv-down" aria-label="Move down" title="Move down"'+(number===openCount?' disabled':'')+'>&#9660;</button>'+
+      '</div>';
+ 
     el.innerHTML =
       numOrCheck +
       (t.done ? '' : '<div class="box" role="checkbox" aria-checked="false" style="margin-top:1px;"></div>') +
@@ -400,8 +411,9 @@
         '</div>'+
         '<div class="meta">'+(t.done?('Done '+fmtShort(t.completedOn)):('Added '+fmtShort(t.created)))+(carried?'<span class="carried">carried from '+fmtShort(t.created)+'</span>':'')+'</div>'+
       '</div>'+
+      moveControls +
       '<button class="del" aria-label="Delete">&times;</button>';
-
+ 
     // check-off (the box; for open items it's the second .box)
     const box = el.querySelector('.box');
     if(box){
@@ -414,7 +426,7 @@
         setTodos(list); renderTodos(); // renumber happens automatically via order sort
       });
     }
-
+ 
     // priority cycle on tap
     const pill = el.querySelector('.prio');
     if(pill){
@@ -423,7 +435,7 @@
         if(item){ item.priority = nextPriority(item.priority || 'med'); setTodos(list); renderTodos(); }
       });
     }
-
+ 
     // edit text
     const txt = el.querySelector('.txt');
     txt.addEventListener('blur', () => {
@@ -431,12 +443,22 @@
       if(item){ item.text = txt.textContent.trim(); setTodos(list); }
     });
     txt.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); txt.blur(); } });
-
+ 
     // delete
     el.querySelector('.del').addEventListener('click', () => {
       let list = getTodos(); list = list.filter(x=>x.id!==t.id); setTodos(list); renderTodos();
     });
-
+ 
+    // move up / down / to top (open items only)
+    if(!t.done){
+      const up = el.querySelector('.mv-up');
+      const down = el.querySelector('.mv-down');
+      const top = el.querySelector('.mv-top');
+      if(up) up.addEventListener('click', () => moveTodo(t.id, -1));
+      if(down) down.addEventListener('click', () => moveTodo(t.id, 1));
+      if(top) top.addEventListener('click', () => moveToTop(t.id));
+    }
+ 
     // drag to reorder (open items only)
     if(!t.done){
       const handle = el.querySelector('.num');
@@ -455,10 +477,10 @@
         reorderTodos(draggedId, t.id);
       });
     }
-
+ 
     return el;
   }
-
+ 
   // Move dragged item to the position of the target item, then resequence order values.
   function reorderTodos(draggedId, targetId){
     const list = getTodos();
@@ -471,9 +493,33 @@
     open.forEach((t, i) => { const item = list.find(x=>x.id===t.id); if(item) item.order = i; });
     setTodos(list); renderTodos();
   }
-
+ 
+  // Nudge an item one step up (dir=-1) or down (dir=1) within the open list.
+  function moveTodo(id, dir){
+    const list = getTodos();
+    const open = list.filter(x => !x.done && x.created <= selectedISO).sort((a,b)=> a.order - b.order);
+    const idx = open.findIndex(x => x.id === id);
+    const swap = idx + dir;
+    if(idx === -1 || swap < 0 || swap >= open.length) return;
+    const tmp = open[idx]; open[idx] = open[swap]; open[swap] = tmp;
+    open.forEach((t, i) => { const item = list.find(x=>x.id===t.id); if(item) item.order = i; });
+    setTodos(list); renderTodos();
+  }
+ 
+  // Pull an item to position 1, shifting the rest down.
+  function moveToTop(id){
+    const list = getTodos();
+    const open = list.filter(x => !x.done && x.created <= selectedISO).sort((a,b)=> a.order - b.order);
+    const idx = open.findIndex(x => x.id === id);
+    if(idx <= 0) return;
+    const [moved] = open.splice(idx, 1);
+    open.unshift(moved);
+    open.forEach((t, i) => { const item = list.find(x=>x.id===t.id); if(item) item.order = i; });
+    setTodos(list); renderTodos();
+  }
+ 
   function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
+ 
   function addTodo(){
     const inp = document.getElementById('todoInput');
     const text = inp.value.trim();
@@ -486,7 +532,7 @@
     inp.value='';
     renderTodos();
   }
-
+ 
   function wirePrioritySelect(){
     const sel = document.getElementById('prioSelect');
     function refresh(){
@@ -500,15 +546,15 @@
     });
     refresh();
   }
-
+ 
   function renderAll(){ renderDateNav(); renderHeader(); renderNotes(); renderTodos(); }
-
+ 
   function shiftDay(delta){
     const d = new Date(selectedISO+'T00:00:00'); d.setDate(d.getDate()+delta);
     const iso = localISO(d); if(iso > todayISO()) return;
     selectedISO = iso; renderAll();
   }
-
+ 
   // ---- backup ----
   function exportData(){
     const dump={}; for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); if(k&&k.indexOf(PREFIX)===0) dump[k]=localStorage.getItem(k); }
@@ -527,7 +573,7 @@
     r.onerror=()=>msg('Could not read file.', false); r.readAsText(file);
   }
   function msg(t,ok){ const el=document.getElementById('ioMsg'); el.textContent=t; el.style.color=ok?'var(--success-text)':'#A32D2D'; }
-
+ 
   // ---- wire controls ----
   document.getElementById('prevDay').addEventListener('click', ()=>shiftDay(-1));
   document.getElementById('nextDay').addEventListener('click', ()=>shiftDay(1));
@@ -540,7 +586,7 @@
   document.getElementById('exportBtn').addEventListener('click', exportData);
   document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
   document.getElementById('importFile').addEventListener('change', e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=''; });
-
+ 
   wireNotes();
   wirePrioritySelect();
   const savedTheme = lsGet('theme') || 'purple';
