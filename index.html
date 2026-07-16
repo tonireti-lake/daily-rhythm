@@ -62,6 +62,15 @@
   .tracker { margin-top:10px; padding:10px 12px; background:var(--surface2); border-radius:var(--radius-md); }
   .tracker-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
   .tracker-bar { height:7px; border-radius:4px; background:var(--border); overflow:hidden; margin-bottom:8px; }
+  .mood button { min-width:62px; height:auto; padding:7px 6px 6px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; line-height:1; }
+  .mood button .m-emoji { font-size:22px; line-height:1; }
+  .mood button .m-label { font-size:11px; line-height:1.2; color:var(--text2); }
+  .mood button.sel { border-width:2px; }
+  .mood button.sel .m-label { font-weight:600; }
+  @media (max-width: 460px) {
+    .mood { display:grid !important; grid-template-columns:repeat(3, 1fr); }
+    .mood button { min-width:0; width:100%; }
+  }
   @media (max-width: 460px) {
     .stats { grid-template-columns: 1fr 1fr; }
     .stats > div:last-child { grid-column: 1 / -1; }
@@ -78,13 +87,13 @@
 <div class="container">
   <h1>Daily rhythm</h1>
   <p class="sub">Rest, movement, reflection, hydration — synced across your devices.</p>
- 
+
   <div class="wake-bar">
     <label for="wakeInput" style="display:flex; align-items:center; gap:6px; color:var(--text);"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true"><circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2"/><path d="M7 4 4.25 6"/><path d="M17 4l2.75 2"/></svg> Wake-up time</label>
     <input type="time" id="wakeInput" value="06:00" />
     <span id="wakeNote" style="font-size:13px; color:var(--text2);"></span>
   </div>
- 
+
   <div class="datenav">
     <button id="prevDay" aria-label="Previous day"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
     <input type="date" id="datePick" />
@@ -92,7 +101,19 @@
     <span class="spacer"></span>
     <button id="todayBtn" style="font-size:13px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M16 3v4M8 3v4M4 9h16"/><circle cx="12" cy="14" r="1.6"/></svg> Today</button>
   </div>
- 
+
+  <div id="vacayPanel" style="display:none; background:#FAEEDA; border-radius:var(--radius-lg); padding:12px 14px; margin-bottom:1.25rem;">
+    <p style="font-size:13px; color:#854F0B; margin:0 0 8px; font-weight:500;">Mark a vacation range</p>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <input type="date" id="vacayFrom" aria-label="Vacation start" />
+      <span style="font-size:13px; color:#854F0B;">to</span>
+      <input type="date" id="vacayTo" aria-label="Vacation end" />
+      <button id="vacayApply" style="font-size:13px;">Mark as vacation</button>
+      <button id="vacayClear" style="font-size:13px;">Clear range</button>
+    </div>
+    <p id="vacayMsg" style="font-size:12px; color:#854F0B; margin:8px 0 0; min-height:16px;"></p>
+  </div>
+
   <div class="topbar">
     <div>
       <p id="dateLabel" style="font-size:18px; font-weight:500; margin:0;"></p>
@@ -101,15 +122,17 @@
     <div class="toolbar" style="align-items:center;">
       <span id="pastPill" class="pastpill"></span>
       <button id="officeToggle" style="font-size:13px;"></button>
+      <button id="vacayToggle" style="font-size:13px;"></button>
+      <button id="vacayRangeBtn" style="font-size:13px;" title="Mark a range of days">Range</button>
       <button id="resetDay" style="font-size:13px;" aria-label="Reset this day"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true"><path d="M5 11a7 7 0 0 1 12-4l2 2M19 5v4h-4"/><path d="M19 13a7 7 0 0 1-12 4l-2-2M5 19v-4h4"/></svg></button>
     </div>
   </div>
- 
+
   <div id="banner" class="banner">
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true"><path d="M4 20l5-13 8 8-13 5z"/><path d="M14 5l1-2M18 7l2-1M17 11l2 1M11 4l1 1"/></svg>
     <span id="bannerText"></span>
   </div>
- 
+
   <div class="panel" id="devotionalPanel" style="margin-top:0; margin-bottom:1.25rem; border-left:4px solid #7F77DD;">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
       <span style="font-size:12px; letter-spacing:0.04em; text-transform:uppercase; color:#7F77DD; font-weight:600;">Daily devotional</span>
@@ -120,7 +143,7 @@
     <p id="devBody" style="font-size:14px; color:var(--text); margin:0; line-height:1.6;"></p>
     <p id="devSuggest" style="font-size:13px; color:var(--text2); margin:12px 0 0; padding-top:10px; border-top:0.5px solid var(--border); line-height:1.5;"></p>
   </div>
- 
+
   <div class="stats">
     <div class="stat">
       <p class="lbl" id="dayStatLabel">Today</p>
@@ -136,14 +159,18 @@
       <p class="val" id="weekRate">—</p>
     </div>
   </div>
- 
+
   <div id="blocks" class="blocks"></div>
- 
+
   <div class="panel">
     <h2><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#7F77DD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true"><path d="M18 13.5A7 7 0 0 1 9.5 5 6 6 0 1 0 18 13.5z"/></svg>Evening reflection</h2>
     <div class="field">
       <label>Energy that day</label>
       <div id="energyRow" class="energy" style="display:flex; gap:6px;"></div>
+    </div>
+    <div class="field">
+      <label>Mood that day</label>
+      <div id="moodRow" class="mood" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
     </div>
     <div class="field">
       <label><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#D4537E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true"><path d="M12 20s-7-4.5-9.2-9C1.3 8 2.6 4.5 6 4.5c2 0 3.2 1.3 4 2.5.8-1.2 2-2.5 4-2.5 3.4 0 4.7 3.5 3.2 6.5C19 15.5 12 20 12 20z"/></svg>Gratitude — what are you thankful for?</label>
@@ -160,13 +187,13 @@
     <button id="saveReflect" style="font-size:14px; padding:8px 16px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg> Save reflection</button>
     <span id="reflectSaved" class="saved">Saved</span>
   </div>
- 
+
   <div style="margin-top:1.5rem;">
     <p style="font-size:16px; font-weight:500; margin:0 0 12px;">Last 14 days <span style="font-size:13px; color:var(--text2); font-weight:400;">· tap a square to jump to that day</span></p>
     <div id="heatmap"></div>
     <div id="patternNote" class="note"></div>
   </div>
- 
+
   <div class="panel">
     <h2><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#378ADD" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true"><path d="M7 18a4 4 0 1 1 .8-7.9A5 5 0 0 1 18 11a3.5 3.5 0 0 1-.5 7H7z"/></svg>Google Sheets sync</h2>
     <p style="font-size:13px; color:var(--text2); margin:0 0 12px;">Paste your Apps Script web-app URL once. After that, every device using this file with the same URL stays in sync.</p>
@@ -184,7 +211,7 @@
     <p id="ioMsg" style="font-size:13px; margin:6px 0 0; min-height:18px;"></p>
   </div>
 </div>
- 
+
 <script>
 (function(){
   "use strict";
@@ -220,12 +247,12 @@
     const c = color || 'currentColor';
     return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-0.15em; display:inline-block;" aria-hidden="true">'+p+'</svg>';
   }
- 
+
   /* ===== Devotional system ===== */
 // Devotional library + selection logic. Built as standalone JS for testing first.
 // Themes: leadership, overwhelm, burnout, trust, faith
 // Scripture quoted briefly (NIV) under fair-use length; full passage via reference.
- 
+
 const DEVOTIONALS = [
     {theme:'leadership', ref:'Proverbs 3:5-6', verse:'Trust in the Lord with all your heart and lean not on your own understanding.', body:'Leadership tempts you to believe the weight rests on your judgment alone. Today, hold your decisions a little more loosely — bring the hard call to God before you bring it to the room. Leaning on Him is not abdicating responsibility; it is refusing to carry what was never yours to carry alone.'},
     {theme:'leadership', ref:'Micah 6:8', verse:'Act justly, love mercy, walk humbly with your God.', body:'The metrics will measure your output, but they will never measure how you led. Justice, mercy, and humility are the quiet standard you answer to underneath the visible one. Lead one interaction today by that deeper scorecard.'},
@@ -328,19 +355,20 @@ const DEVOTIONALS = [
     {theme:'faith', ref:'Proverbs 3:5', verse:'Trust in the Lord with all your heart.', body:'Whole-hearted trust is the daily aim — not the leftover trust after you\'ve exhausted your own options. Lead with it this morning. Give God the first word on the day, not the last resort.'},
     {theme:'faith', ref:'Psalm 46:5', verse:'God is within her, she will not fall; God will help her at break of day.', body:'Help arrives at the break of day — timed for exactly when you need to begin. You are not facing this morning on yesterday\'s strength. Receive the fresh help meant for today and step forward steady.'}
   ];
- 
+
 // ---- selection ----
- 
+
 // deterministic hash from a string -> int
 function hashStr(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return (h>>>0); }
- 
+
 // Analyze recent days (array of day objects, most recent first) -> suggested theme or null
 function suggestTheme(recent){
   // recent: [{checks, energy, drain, mealNote, gtd, workoutMin, hydrationOz}, ...]
   const days = recent.filter(Boolean).slice(0,7);
   if(days.length < 2) return null; // not enough signal
- 
+
   let lowEnergy=0, energyCount=0, drainNotes=0, missedLoad=0, loadDays=0, offPlan=0, highGtd=0;
+  let moodCount=0, moodStressed=0, moodLow=0, moodGood=0;
   days.forEach(d => {
     if(d.energy != null){ energyCount++; if(d.energy <= 2) lowEnergy++; }
     if(d.drain && d.drain.trim()) drainNotes++;
@@ -348,8 +376,14 @@ function suggestTheme(recent){
     loadDays++; if(done <= 3) missedLoad++;
     if(d.mealNote && d.mealNote.trim()) offPlan++;
     if((d.gtd||0) >= 90) highGtd++;
+    if(d.mood){
+      moodCount++;
+      if(d.mood === 'stressed' || d.mood === 'angry') moodStressed++;
+      if(d.mood === 'low') moodLow++;
+      if(d.mood === 'great' || d.mood === 'good') moodGood++;
+    }
   });
- 
+
   // scoring per theme based on signals
   const score = {burnout:0, overwhelm:0, trust:0, leadership:0, faith:0};
   if(energyCount){
@@ -362,13 +396,25 @@ function suggestTheme(recent){
   if(loadDays && missedLoad/loadDays >= 0.5) score.burnout += 2;
   if(offPlan >= 3) score.overwhelm += 1;
   if(highGtd >= 4) score.burnout += 1; // sustained heavy focus load
- 
+  // mood signals: how you felt, distinct from how much you had left in the tank
+  if(moodCount){
+    const stressRate = moodStressed/moodCount;
+    const lowRate2 = moodLow/moodCount;
+    const goodRate = moodGood/moodCount;
+    if(stressRate >= 0.5) score.overwhelm += 2;
+    else if(stressRate >= 0.3) score.overwhelm += 1;
+    if(lowRate2 >= 0.4) score.burnout += 2;
+    else if(lowRate2 >= 0.25) score.burnout += 1;
+    // a genuinely good stretch: lean toward gratitude-shaped faith rather than crisis themes
+    if(goodRate >= 0.7 && moodCount >= 3) score.faith += 2;
+  }
+
   // pick highest-scoring theme if any clear signal
   let best=null, bestScore=0;
   Object.keys(score).forEach(t => { if(score[t] > bestScore){ bestScore=score[t]; best=t; } });
   return bestScore >= 2 ? best : null;
 }
- 
+
 // Pick the devotional for a given date, optionally biased toward a theme.
 function pickDevotional(iso, biasTheme){
   const seed = hashStr(iso);
@@ -379,14 +425,20 @@ function pickDevotional(iso, biasTheme){
   // even rotation across all themes, date-seeded
   return DEVOTIONALS[seed % DEVOTIONALS.length];
 }
- 
+
   function recentDaysFor(iso, n){
+    // Vacation days are excluded so a restful break isn't misread as burnout.
     const out = [];
     const base = new Date(iso+'T00:00:00');
-    for(let i=1;i<=n;i++){ const d=new Date(base); d.setDate(d.getDate()-i); const day=getDay(localISO(d)); out.push(day); }
+    for(let i=1;i<=n;i++){
+      const d=new Date(base); d.setDate(d.getDate()-i);
+      const dISO = localISO(d);
+      if(isVacay(dISO)) continue;
+      out.push(getDay(dISO));
+    }
     return out;
   }
- 
+
   function renderDevotional(){
     // devotional for the selected day, biased by the days BEFORE it
     const priorDays = recentDaysFor(selectedISO, 7);
@@ -397,9 +449,9 @@ function pickDevotional(iso, biasTheme){
     document.getElementById('devRef').textContent = dev.ref + ' (NIV)';
     document.getElementById('devVerse').textContent = '\u201c' + dev.verse + '\u201d';
     document.getElementById('devBody').textContent = dev.body;
- 
+
     // tomorrow's lean, based on selected day + the 6 before it (so it reflects current week incl today)
-    const throughToday = [getDay(selectedISO)].concat(recentDaysFor(selectedISO, 6));
+    const throughToday = (isVacay(selectedISO) ? [] : [getDay(selectedISO)]).concat(recentDaysFor(selectedISO, 6));
     const tomorrowBias = suggestTheme(throughToday);
     const suggestEl = document.getElementById('devSuggest');
     if(tomorrowBias){
@@ -411,13 +463,13 @@ function pickDevotional(iso, biasTheme){
       suggestEl.style.display = 'block';
     }
   }
- 
+
   const GTD_GOAL = 90;
   const WORKOUT_GOAL = 45;
   const HYDRATION_GOAL = 80;
   const REST_GOAL = 120;
   const PREFIX = "drd_";
- 
+
   const COLORS = {
     workout:   {fill:'#FAECE7', stroke:'#D85A30', icon:'#993C1D', bar:'#D85A30'},
     reflect_am:{fill:'#FAEEDA', stroke:'#EF9F27', icon:'#854F0B', bar:'#EF9F27'},
@@ -427,10 +479,10 @@ function pickDevotional(iso, biasTheme){
     reset:     {fill:'#E6F1FB', stroke:'#378ADD', icon:'#0C447C', bar:'#378ADD'},
     shutdown:  {fill:'#FBEAF0', stroke:'#D4537E', icon:'#993556', bar:'#D4537E'}
   };
- 
+
   function lsGet(key){ try { const v = localStorage.getItem(PREFIX+key); return v?JSON.parse(v):null; } catch(e){ return null; } }
   function lsSet(key, val){ try { localStorage.setItem(PREFIX+key, JSON.stringify(val)); return true; } catch(e){ console.error(e); return false; } }
- 
+
   function addMin(hhmm, mins){
     const [h,m] = hhmm.split(':').map(Number);
     let t = ((h*60+m+mins)%1440+1440)%1440;
@@ -441,11 +493,49 @@ function pickDevotional(iso, biasTheme){
     const ap = h>=12?'PM':'AM'; let hh=h%12; if(hh===0) hh=12;
     return hh+':'+String(m).padStart(2,'0')+' '+ap;
   }
- 
+
+  // ---- vacation ----
+  function isVacay(iso){ return Array.isArray(prefs.vacay) && prefs.vacay.indexOf(iso) !== -1; }
+  function setVacay(iso, on){
+    if(!Array.isArray(prefs.vacay)) prefs.vacay = [];
+    const i = prefs.vacay.indexOf(iso);
+    if(on && i === -1) prefs.vacay.push(iso);
+    if(!on && i !== -1) prefs.vacay.splice(i,1);
+    setPrefs(prefs);
+  }
+  function setVacayRange(startISO, endISO, on){
+    if(!startISO || !endISO) return 0;
+    let a = startISO, b = endISO;
+    if(a > b){ const t=a; a=b; b=t; }
+    let count = 0;
+    const cur = new Date(a+'T00:00:00');
+    const end = new Date(b+'T00:00:00');
+    while(cur <= end){
+      setVacay(localISO(cur), on);
+      count++;
+      cur.setDate(cur.getDate()+1);
+    }
+    return count;
+  }
+
+  function touchRange(startISO, endISO){
+    let a = startISO, b = endISO;
+    if(a > b){ const t=a; a=b; b=t; }
+    const cur = new Date(a+'T00:00:00');
+    const end = new Date(b+'T00:00:00');
+    while(cur <= end){
+      const iso = localISO(cur);
+      const d = getDay(iso) || blankDay();
+      setDay(iso, normalize(d));
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+
   function buildPractices(wake, iso){
     const workout = addMin(wake,15), reflect = addMin(workout,45), med = addMin(reflect,30);
-    const weekend = iso ? isWeekend(iso) : false;
-    const sunday = iso ? (dayOfWeek(iso) === 0) : false;
+    const vac = iso ? isVacay(iso) : false;
+    const weekend = iso ? (isWeekend(iso) || vac) : false;
+    const sunday = iso ? (dayOfWeek(iso) === 0 && !vac) : false;
     const resetDef = weekend
       ? {id:'reset', name:'Rest & recharge', sub:'log restorative time today', iconName:'wind', time:'14:30', tracker:'rest'}
       : {id:'reset', name:'Work-stress reset', sub:'5 min reset, plus 90 min GTD today', iconName:'wind', time:'14:30', tracker:'gtd'};
@@ -462,10 +552,10 @@ function pickDevotional(iso, biasTheme){
       shutdownDef
     ];
   }
- 
+
   let PRACTICES = buildPractices('06:00');
   const TOTAL = 7;
- 
+
   function localISO(d){
     return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
@@ -473,18 +563,18 @@ function pickDevotional(iso, biasTheme){
   const fmtDate = (iso) => new Date(iso+'T00:00:00').toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
   const dayOfWeek = (iso) => new Date(iso+'T00:00:00').getDay();
   const isWeekend = (iso) => { const d = dayOfWeek(iso); return d===0 || d===6; };
- 
+
   let selectedISO = todayISO();
- 
-  function blankDay(){ return {checks:{}, energy:null, grat:'', well:'', drain:'', gtd:0, workoutMin:0, hydrationOz:0, mealRating:0, mealNote:'', top3:['','',''], restMin:0, weekWins:'', weekFocus:''}; }
+
+  function blankDay(){ return {checks:{}, energy:null, mood:null, grat:'', well:'', drain:'', gtd:0, workoutMin:0, hydrationOz:0, mealRating:0, mealNote:'', top3:['','',''], restMin:0, weekWins:'', weekFocus:''}; }
   function getDay(iso){ return lsGet('day:'+iso); }
   function setDay(iso, d){ lsSet('day:'+iso, d); pushToSheet(iso, d); }
-  function getPrefs(){ return lsGet('prefs') || {office:true, wake:'06:00'}; }
+  function getPrefs(){ const p = lsGet('prefs') || {office:true, wake:'06:00'}; if(!Array.isArray(p.vacay)) p.vacay = []; return p; }
   function setPrefs(p){ lsSet('prefs', p); }
- 
+
   let state = blankDay();
   let prefs = {office:true, wake:'06:00'};
- 
+
   function normalize(d){
     if(d.gtd === undefined) d.gtd = 0;
     if(d.workoutMin === undefined) d.workoutMin = 0;
@@ -492,6 +582,7 @@ function pickDevotional(iso, biasTheme){
     if(d.mealRating === undefined) d.mealRating = 0;
     if(d.mealNote === undefined) d.mealNote = '';
     if(!Array.isArray(d.top3)) d.top3 = ['','',''];
+    if(d.mood === undefined) d.mood = null;
     if(d.restMin === undefined) d.restMin = 0;
     if(d.weekWins === undefined) d.weekWins = '';
     if(d.weekFocus === undefined) d.weekFocus = '';
@@ -499,14 +590,14 @@ function pickDevotional(iso, biasTheme){
     if(!d.checks) d.checks = {};
     return d;
   }
- 
+
   function loadSelected(){
     prefs = getPrefs();
     PRACTICES = buildPractices(prefs.wake || '06:00', selectedISO);
     state = normalize(getDay(selectedISO) || blankDay());
   }
- 
- 
+
+
   let SYNC_URL = lsGet('syncUrl') || '';
   let pushQueue = {};
   let pushTimer = null;
@@ -521,7 +612,7 @@ function pickDevotional(iso, biasTheme){
   }
   function flushQueue(){
     if(!SYNC_URL) return;
-    const items = Object.keys(pushQueue).map(iso => Object.assign({date: iso}, pushQueue[iso]));
+    const items = Object.keys(pushQueue).map(iso => Object.assign({date: iso, vacation: isVacay(iso)}, pushQueue[iso]));
     pushQueue = {};
     items.forEach(payload => {
       fetch(SYNC_URL, { method:'POST', body: JSON.stringify(payload), headers:{'Content-Type':'text/plain;charset=utf-8'} })
@@ -536,24 +627,30 @@ function pickDevotional(iso, biasTheme){
     setSyncStatus('Syncing\u2026', '#378ADD');
     fetch(SYNC_URL, {method:'GET'}).then(r => r.json()).then(res => {
       if(res && res.ok && res.days){
+        const vacFromSheet = [];
         Object.keys(res.days).forEach(iso => {
           const rm = res.days[iso];
-          lsSet('day:'+iso, {checks:rm.checks||{}, energy:rm.energy, grat:rm.grat||'', well:rm.well||'', drain:rm.drain||'', gtd:rm.gtd||0, workoutMin:rm.workoutMin||0, hydrationOz:rm.hydrationOz||0, mealRating:rm.mealRating||0, mealNote:rm.mealNote||'', top3:Array.isArray(rm.top3)?rm.top3:['','',''], restMin:rm.restMin||0, weekWins:rm.weekWins||'', weekFocus:rm.weekFocus||''});
+          if(rm.vacation) vacFromSheet.push(iso);
+          lsSet('day:'+iso, {checks:rm.checks||{}, energy:rm.energy, mood:rm.mood||null, grat:rm.grat||'', well:rm.well||'', drain:rm.drain||'', gtd:rm.gtd||0, workoutMin:rm.workoutMin||0, hydrationOz:rm.hydrationOz||0, mealRating:rm.mealRating||0, mealNote:rm.mealNote||'', top3:Array.isArray(rm.top3)?rm.top3:['','',''], restMin:rm.restMin||0, weekWins:rm.weekWins||'', weekFocus:rm.weekFocus||''});
         });
+        if(vacFromSheet.length){
+          const merged = Array.from(new Set((prefs.vacay||[]).concat(vacFromSheet)));
+          prefs.vacay = merged; setPrefs(prefs);
+        }
         setSyncStatus('Synced \u00b7 '+new Date().toLocaleTimeString(), '#1D9E75');
         loadSelected(); renderAll(); syncReflectionInputs();
       } else { setSyncStatus('Connected, but no data returned yet.', '#EF9F27'); }
       if(cb) cb();
     }).catch(() => { setSyncStatus('Could not reach the Sheet \u2014 running locally.', '#A32D2D'); if(cb) cb(); });
   }
- 
- 
+
+
   function renderWake(){
     document.getElementById('wakeInput').value = prefs.wake || '06:00';
     const w = prefs.wake || '06:00';
     document.getElementById('wakeNote').textContent = 'Workout '+fmtTime(addMin(w,15))+' \u00b7 reflection '+fmtTime(addMin(w,60))+' \u00b7 meditation '+fmtTime(addMin(w,90));
   }
- 
+
   function renderDateNav(){
     document.getElementById('datePick').value = selectedISO;
     document.getElementById('datePick').max = todayISO();
@@ -569,12 +666,15 @@ function pickDevotional(iso, biasTheme){
     }
     document.getElementById('dayStatLabel').textContent = isToday ? 'Today' : 'This day';
   }
- 
+
   function renderHeader(){
     document.getElementById('dateLabel').textContent = fmtDate(selectedISO);
+    const vac = isVacay(selectedISO);
     const weekend = isWeekend(selectedISO);
     let ctx;
-    if(weekend){
+    if(vac){
+      ctx = 'Vacation \u00b7 streak paused, nothing counted against you \u2014 log only what you feel like';
+    } else if(weekend){
       ctx = 'Weekend \u00b7 a lighter rhythm is fine \u2014 keep what restores you, skip what doesn\u2019t fit';
     } else {
       ctx = prefs.office
@@ -583,12 +683,20 @@ function pickDevotional(iso, biasTheme){
     }
     document.getElementById('dayContext').textContent = ctx;
     const ot = document.getElementById('officeToggle');
-    ot.style.display = weekend ? 'none' : 'inline-block';
+    ot.style.display = (weekend || vac) ? 'none' : 'inline-block';
     ot.innerHTML = prefs.office
       ? '<span style="display:inline-flex; vertical-align:-2px;">'+svgIcon('building',16)+'</span> In-office'
       : '<span style="display:inline-flex; vertical-align:-2px;">'+svgIcon('home',16)+'</span> Remote';
+    const vt = document.getElementById('vacayToggle');
+    if(vt){
+      vt.innerHTML = '<span style="display:inline-flex; vertical-align:-2px;">'+svgIcon('sun',16, vac ? '#EF9F27' : undefined)+'</span> '+(vac ? 'On vacation' : 'Vacation');
+      vt.style.background = vac ? '#FAEEDA' : 'transparent';
+      vt.style.borderColor = vac ? '#EF9F27' : 'var(--color-border-secondary, rgba(0,0,0,0.22))';
+      vt.style.color = vac ? '#854F0B' : '';
+      vt.title = vac ? 'This day is marked as vacation \u2014 tap to unmark' : 'Mark this day as vacation';
+    }
   }
- 
+
   function confetti(x,y){
     const cols = ['#D85A30','#EF9F27','#1D9E75','#7F77DD','#378ADD','#D4537E'];
     for(let i=0;i<10;i++){
@@ -599,7 +707,7 @@ function pickDevotional(iso, biasTheme){
       setTimeout(()=>dot.remove(), 720);
     }
   }
- 
+
   function counterTracker(opts){
     // opts: {label, value, goal, unit, hit, steps:[...], color}
     const done = Math.min(opts.value, opts.goal);
@@ -614,7 +722,7 @@ function pickDevotional(iso, biasTheme){
       '<div style="display:flex; gap:6px; flex-wrap:wrap;">'+btns+'</div>'+
     '</div>';
   }
- 
+
   function mealTracker(){
     const r = state.mealRating || 0;
     const labels = ['', 'Off the rails', 'Shaky', 'Okay', 'Pretty good', 'Fully mindful'];
@@ -633,7 +741,7 @@ function pickDevotional(iso, biasTheme){
       '<input type="text" id="mealNoteInput" placeholder="e.g. late-night chips, skipped lunch..." value="'+(state.mealNote||'').replace(/"/g,'&quot;')+'" />'+
     '</div>';
   }
- 
+
   function shutdownTracker(){
     const t = state.top3 || ['','',''];
     function field(i){
@@ -648,7 +756,7 @@ function pickDevotional(iso, biasTheme){
       field(0)+field(1)+field(2)+
     '</div>';
   }
- 
+
   function renderBlocks(){
     const c = document.getElementById('blocks');
     c.innerHTML = '';
@@ -676,7 +784,7 @@ function pickDevotional(iso, biasTheme){
         renderBlocks(); renderStats(); renderHeatmap();
       });
       card.appendChild(row);
- 
+
       if(p.tracker){
         const w = document.createElement('div');
         w.className = 'subpanel';
@@ -707,7 +815,7 @@ function pickDevotional(iso, biasTheme){
       c.appendChild(card);
     });
   }
- 
+
   function wireCounter(wrap, field, goal, autoCheckId){
     wrap.querySelectorAll('[data-delta]').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -727,7 +835,7 @@ function pickDevotional(iso, biasTheme){
       });
     });
   }
- 
+
   function wireMeal(wrap){
     wrap.querySelectorAll('[data-meal]').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -745,7 +853,7 @@ function pickDevotional(iso, biasTheme){
       noteEl.addEventListener('change', () => { state.mealNote = noteEl.value; setDay(selectedISO, state); });
     }
   }
- 
+
   function wireShutdown(wrap){
     wrap.querySelectorAll('.top3Input').forEach(inp => {
       inp.addEventListener('click', e => e.stopPropagation());
@@ -757,7 +865,7 @@ function pickDevotional(iso, biasTheme){
       });
     });
   }
- 
+
   function weeklyTracker(){
     const wins = (state.weekWins||'').replace(/"/g,'&quot;');
     const focus = (state.weekFocus||'').replace(/"/g,'&quot;');
@@ -769,7 +877,7 @@ function pickDevotional(iso, biasTheme){
       '<textarea id="weekFocusInput" rows="2" style="width:100%;" placeholder="What matters most next week...">'+focus+'</textarea>'+
     '</div>';
   }
- 
+
   function wireWeekly(wrap){
     const winsEl = wrap.querySelector('#weekWinsInput');
     const focusEl = wrap.querySelector('#weekFocusInput');
@@ -777,7 +885,41 @@ function pickDevotional(iso, biasTheme){
     if(winsEl) winsEl.addEventListener('change', () => { state.weekWins = winsEl.value; state.checks.shutdown = !!(state.weekWins.trim() || state.weekFocus.trim()); setDay(selectedISO, state); renderBlocks(); renderStats(); renderHeatmap(); });
     if(focusEl) focusEl.addEventListener('change', () => { state.weekFocus = focusEl.value; state.checks.shutdown = !!(state.weekWins.trim() || state.weekFocus.trim()); setDay(selectedISO, state); renderBlocks(); renderStats(); renderHeatmap(); });
   }
- 
+
+  const MOODS = [
+    {key:'great',   emoji:'\uD83D\uDE04', label:'Great',    tint:'#E1F5EE', ink:'#0F6E56'},
+    {key:'good',    emoji:'\uD83D\uDE42', label:'Good',     tint:'#E1F5EE', ink:'#0F6E56'},
+    {key:'ok',      emoji:'\uD83D\uDE10', label:'Okay',     tint:'#F1EFE8', ink:'#5F5E5A'},
+    {key:'stressed',emoji:'\uD83D\uDE23', label:'Stressed', tint:'#FAEEDA', ink:'#854F0B'},
+    {key:'low',     emoji:'\uD83D\uDE14', label:'Low',      tint:'#E6F1FB', ink:'#0C447C'},
+    {key:'angry',   emoji:'\uD83D\uDE20', label:'Frustrated', tint:'#FBE3E3', ink:'#A32D2D'}
+  ];
+
+  function renderMood(){
+    const row = document.getElementById('moodRow');
+    if(!row) return;
+    row.innerHTML = '';
+    MOODS.forEach(m => {
+      const b = document.createElement('button');
+      b.innerHTML = '<span class="m-emoji">'+m.emoji+'</span><span class="m-label">'+m.label+'</span>';
+      b.title = m.label;
+      b.setAttribute('aria-label', m.label);
+      b.setAttribute('aria-pressed', state.mood === m.key ? 'true' : 'false');
+      if(state.mood === m.key){
+        b.className = 'sel';
+        b.style.cssText = 'background:'+m.tint+'; border-color:'+m.ink+';';
+        const lbl = b.querySelector('.m-label');
+        if(lbl) lbl.style.color = m.ink;
+      }
+      b.addEventListener('click', () => {
+        state.mood = (state.mood === m.key) ? null : m.key;
+        setDay(selectedISO, state);
+        renderMood();
+      });
+      row.appendChild(b);
+    });
+  }
+
   function renderEnergy(){
     const row = document.getElementById('energyRow');
     row.innerHTML = '';
@@ -791,7 +933,7 @@ function pickDevotional(iso, biasTheme){
       row.appendChild(b);
     }
   }
- 
+
   function renderStats(){
     const n = Object.values(state.checks).filter(Boolean).length;
     document.getElementById('todayCount').textContent = n+'/'+TOTAL;
@@ -800,27 +942,33 @@ function pickDevotional(iso, biasTheme){
     if(n===TOTAL){ banner.style.display='flex'; document.getElementById('bannerText').textContent='All seven done \u2014 a full day of rhythm. Well done.'; }
     else banner.style.display='none';
   }
- 
+
   function computeStreakAndRate(){
+    // Vacation days are neutral: they neither break the streak nor extend it.
     let streak = 0;
     for(let i=0;i<400;i++){
       const d = new Date(); d.setDate(d.getDate()-i);
-      const day = getDay(localISO(d));
+      const iso = localISO(d);
+      if(isVacay(iso)) continue; // skip over vacation entirely
+      const day = getDay(iso);
       const n = day?Object.values(day.checks||{}).filter(Boolean).length:0;
       if(i===0 && n===0) continue;
       if(n>0) streak++; else break;
     }
+    // 7-day rate ignores vacation days so a good break doesn't read as a bad week.
     let done=0, possible=0;
     for(let i=0;i<7;i++){
       const d = new Date(); d.setDate(d.getDate()-i);
-      const day = getDay(localISO(d));
+      const iso = localISO(d);
+      if(isVacay(iso)) continue;
+      const day = getDay(iso);
       if(day){ done += Object.values(day.checks||{}).filter(Boolean).length; possible += TOTAL; }
     }
     const flame = streak>=3 ? '<span style="margin-right:4px; display:inline-flex; vertical-align:-2px;">'+svgIcon('flame',16,'#D85A30')+'</span>' : '';
     document.getElementById('streakCount').innerHTML = flame+streak+(streak===1?' day':' days');
     document.getElementById('weekRate').textContent = possible? Math.round(done/possible*100)+'%' : '\u2014';
   }
- 
+
   function renderHeatmap(){
     const wrap = document.getElementById('heatmap');
     wrap.innerHTML = '';
@@ -828,17 +976,23 @@ function pickDevotional(iso, biasTheme){
     for(let i=13;i>=0;i--){
       const d = new Date(); d.setDate(d.getDate()-i);
       const iso = localISO(d);
-      days.push({iso, day:getDay(iso), dow:dayOfWeek(iso)});
+      days.push({iso, day:getDay(iso), dow:dayOfWeek(iso), vac:isVacay(iso)});
     }
     const grid = document.createElement('div');
     grid.className = 'grid14';
     const ramp = ['','#CECBF6','#AFA9EC','#7F77DD','#7F77DD','#534AB7','#534AB7','#26215C'];
     days.forEach(({iso,day}) => {
       const n = day?Object.values(day.checks||{}).filter(Boolean).length:0;
+      const vac = isVacay(iso);
       const cell = document.createElement('div');
       cell.className = 'cell';
-      cell.title = fmtDate(iso)+' \u2014 '+n+'/'+TOTAL;
-      cell.style.background = n===0 ? 'var(--surface2)' : ramp[Math.min(n,7)];
+      cell.title = fmtDate(iso)+(vac?' \u2014 vacation':' \u2014 '+n+'/'+TOTAL);
+      if(vac){
+        cell.style.background = '#FAEEDA';
+        cell.style.borderColor = '#EF9F27';
+      } else {
+        cell.style.background = n===0 ? 'var(--surface2)' : ramp[Math.min(n,7)];
+      }
       if(iso === selectedISO) cell.style.outline = '2px solid var(--text)';
       cell.addEventListener('click', () => { selectedISO = iso; loadSelected(); renderAll(); syncReflectionInputs(); });
       grid.appendChild(cell);
@@ -846,10 +1000,10 @@ function pickDevotional(iso, biasTheme){
     wrap.appendChild(grid);
     renderPattern(days);
   }
- 
+
   function renderPattern(days){
     const note = document.getElementById('patternNote');
-    const withData = days.filter(d => d.day);
+    const withData = days.filter(d => d.day && !d.vac);
     if(withData.length < 3){ note.textContent = 'Check off a few days and patterns will surface here \u2014 which practices slip, how your workout minutes and water intake trend, and how often meals go off-plan.'; return; }
     const per = {}; PRACTICES.forEach(p => per[p.id]={done:0,total:0});
     let wdD=0,wdT=0,weD=0,weT=0,gHit=0,gDays=0;
@@ -881,13 +1035,13 @@ function pickDevotional(iso, biasTheme){
     }
     note.textContent = parts.join(' ');
   }
- 
+
   function syncReflectionInputs(){
     document.getElementById('reflectGrat').value = state.grat||'';
     document.getElementById('reflectWell').value = state.well||'';
     document.getElementById('reflectDrain').value = state.drain||'';
   }
- 
+
   function wireReflection(){
     syncReflectionInputs();
     document.getElementById('saveReflect').addEventListener('click', () => {
@@ -899,7 +1053,7 @@ function pickDevotional(iso, biasTheme){
       el.style.opacity = '1'; setTimeout(()=>{ el.style.opacity='0'; }, 1800);
     });
   }
- 
+
   function exportData(){
     const dump = {};
     for(let i=0;i<localStorage.length;i++){
@@ -915,7 +1069,7 @@ function pickDevotional(iso, biasTheme){
     URL.revokeObjectURL(url);
     msg('Exported backup file.', true);
   }
- 
+
   function importData(file){
     const reader = new FileReader();
     reader.onload = () => {
@@ -933,15 +1087,15 @@ function pickDevotional(iso, biasTheme){
     reader.onerror = () => msg('Could not read that file.', false);
     reader.readAsText(file);
   }
- 
+
   function msg(text, ok){
     const el = document.getElementById('ioMsg');
     el.textContent = text;
     el.style.color = ok ? 'var(--success-text)' : '#A32D2D';
   }
- 
-  function renderAll(){ renderWake(); renderDateNav(); renderHeader(); renderDevotional(); renderBlocks(); renderEnergy(); renderStats(); computeStreakAndRate(); renderHeatmap(); }
- 
+
+  function renderAll(){ renderWake(); renderDateNav(); renderHeader(); renderDevotional(); renderBlocks(); renderEnergy(); renderMood(); renderStats(); computeStreakAndRate(); renderHeatmap(); }
+
   function shiftDay(delta){
     const d = new Date(selectedISO+'T00:00:00');
     d.setDate(d.getDate()+delta);
@@ -949,16 +1103,51 @@ function pickDevotional(iso, biasTheme){
     if(iso > todayISO()) return;
     selectedISO = iso; loadSelected(); renderAll(); syncReflectionInputs();
   }
- 
+
   document.getElementById('wakeInput').addEventListener('change', (e) => {
     prefs.wake = e.target.value || '06:00'; setPrefs(prefs);
     PRACTICES = buildPractices(prefs.wake, selectedISO); renderWake(); renderBlocks();
+  });
+  document.getElementById('vacayToggle').addEventListener('click', () => {
+    const now = isVacay(selectedISO);
+    setVacay(selectedISO, !now);
+    // touch the day so the vacation flag syncs to the Sheet
+    const d = getDay(selectedISO) || blankDay();
+    setDay(selectedISO, normalize(d));
+    loadSelected(); renderAll(); syncReflectionInputs();
+  });
+  document.getElementById('vacayRangeBtn').addEventListener('click', () => {
+    const p = document.getElementById('vacayPanel');
+    const showing = p.style.display !== 'none';
+    p.style.display = showing ? 'none' : 'block';
+    if(!showing){
+      if(!document.getElementById('vacayFrom').value) document.getElementById('vacayFrom').value = selectedISO;
+      if(!document.getElementById('vacayTo').value) document.getElementById('vacayTo').value = selectedISO;
+    }
+  });
+  document.getElementById('vacayApply').addEventListener('click', () => {
+    const a = document.getElementById('vacayFrom').value;
+    const b = document.getElementById('vacayTo').value;
+    if(!a || !b){ document.getElementById('vacayMsg').textContent = 'Pick both a start and end date.'; return; }
+    const n = setVacayRange(a, b, true);
+    touchRange(a, b);
+    document.getElementById('vacayMsg').textContent = 'Marked '+n+' day'+(n===1?'':'s')+' as vacation.';
+    loadSelected(); renderAll(); syncReflectionInputs();
+  });
+  document.getElementById('vacayClear').addEventListener('click', () => {
+    const a = document.getElementById('vacayFrom').value;
+    const b = document.getElementById('vacayTo').value;
+    if(!a || !b){ document.getElementById('vacayMsg').textContent = 'Pick both a start and end date.'; return; }
+    const n = setVacayRange(a, b, false);
+    touchRange(a, b);
+    document.getElementById('vacayMsg').textContent = 'Cleared vacation on '+n+' day'+(n===1?'':'s')+'.';
+    loadSelected(); renderAll(); syncReflectionInputs();
   });
   document.getElementById('officeToggle').addEventListener('click', () => { prefs.office = !prefs.office; setPrefs(prefs); renderHeader(); });
   document.getElementById('resetDay').addEventListener('click', () => {
     state = blankDay(); setDay(selectedISO, state);
     syncReflectionInputs();
-    renderBlocks(); renderEnergy(); renderStats(); computeStreakAndRate(); renderHeatmap();
+    renderBlocks(); renderEnergy(); renderMood(); renderStats(); computeStreakAndRate(); renderHeatmap();
   });
   document.getElementById('prevDay').addEventListener('click', () => shiftDay(-1));
   document.getElementById('nextDay').addEventListener('click', () => shiftDay(1));
@@ -972,8 +1161,8 @@ function pickDevotional(iso, biasTheme){
   document.getElementById('exportBtn').addEventListener('click', exportData);
   document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
   document.getElementById('importFile').addEventListener('change', (e) => { if(e.target.files[0]) importData(e.target.files[0]); e.target.value=''; });
- 
- 
+
+
   document.getElementById('saveUrl').addEventListener('click', () => {
     const v = document.getElementById('syncUrl').value.trim();
     SYNC_URL = v; lsSet('syncUrl', v);
@@ -981,15 +1170,15 @@ function pickDevotional(iso, biasTheme){
     else { setSyncStatus('Not connected \u2014 running on this device only.'); msg('Sync URL cleared.', true); }
   });
   document.getElementById('syncNow').addEventListener('click', () => { flushQueue(); pullFromSheet(); });
- 
- 
+
+
   loadSelected();
   wireReflection();
   renderAll();
- 
+
   document.getElementById('syncUrl').value = SYNC_URL;
   if(SYNC_URL){ pullFromSheet(); }
- 
+
 })();
 </script>
 </body>
