@@ -7,7 +7,7 @@
 <style>
   :root {
     --bg: #faf9f5; --surface: #ffffff; --surface2: #f1efe8;
-    --text: #1a1a18; --text2: #5f5e5a; --text3: #888780;
+    --text: #1a1a18; --text2: #57564f; --text3: #66655f;
     --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
     --radius-md: 8px; --radius-lg: 12px;
     --success-bg: #e1f5ee; --success-text: #0f6e56;
@@ -16,7 +16,7 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #1f1e1b; --surface: #2a2926; --surface2: #34322e;
-      --text: #f5f3ee; --text2: #b4b2a9; --text3: #888780;
+      --text: #f5f3ee; --text2: #c2bfb6; --text3: #a8a69d;
       --border: rgba(255,255,255,0.14); --border2: rgba(255,255,255,0.26);
       --success-bg: #085041; --success-text: #9fe1cb;
     }
@@ -77,6 +77,38 @@
     .energy { display: grid !important; grid-template-columns: repeat(5,1fr); }
     .energy button { width: 100%; }
   }
+  /* --- Phone readability: scale up small text --- */
+  @media (max-width: 560px) {
+    /* practice card: name and the time/detail line */
+    .row p:first-child { font-size:16px !important; }
+    .row p:nth-child(2), .row div > p:nth-child(2) { font-size:14px !important; }
+    /* trackers: labels, values, and the +/- buttons */
+    .tracker-head span { font-size:14px !important; }
+    .tracker button { font-size:14px !important; padding:7px 12px !important; }
+    /* stat cards */
+    .stat .lbl { font-size:14px !important; }
+    .stat .val { font-size:26px !important; }
+    /* mood labels */
+    .mood button .m-label { font-size:12px !important; }
+    .mood button .m-emoji { font-size:24px !important; }
+    /* devotional panel */
+    #devRef { font-size:16px !important; }
+    #devVerse { font-size:15px !important; }
+    #devBody { font-size:15px !important; }
+    #devSuggest { font-size:14px !important; }
+    #devTheme { font-size:13px !important; }
+    /* pattern note under the heatmap */
+    .note { font-size:14px !important; }
+    /* reflection labels and inputs */
+    .field label, label { font-size:14px !important; }
+    textarea, input[type="text"] { font-size:16px !important; } /* 16px also stops iOS zoom-on-focus */
+    /* date + context lines */
+    #dateLabel { font-size:19px !important; }
+    #dayContext { font-size:14px !important; }
+    /* buttons in the header row */
+    .topbar button, .datenav button { font-size:14px !important; }
+  }
+
   @keyframes pop { 0%{transform:scale(0.6);opacity:0;} 60%{transform:scale(1.15);} 100%{transform:scale(1);opacity:1;} }
   @keyframes float { 0%{transform:translateY(0) rotate(0);opacity:1;} 100%{transform:translateY(-60px) rotate(40deg);opacity:0;} }
   .check-pop { animation: pop 0.32s ease; }
@@ -773,7 +805,7 @@ function pickDevotional(iso, biasTheme){
         '<div style="width:36px; height:36px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; background:'+col.fill+'; color:'+col.icon+'; flex-shrink:0;">'+svgIcon(p.iconName, 19, col.icon)+'</div>'+
         '<div style="flex:1; min-width:0;">'+
           '<p style="font-size:15px; font-weight:500; margin:0; color:'+(done?col.icon:'var(--text)')+'; '+(done?'text-decoration:line-through;':'')+'">'+p.name+'</p>'+
-          '<p style="font-size:13px; color:'+(done?col.icon:'var(--text2)')+'; opacity:'+(done?'0.85':'1')+'; margin:1px 0 0;">'+fmtTime(p.time)+' \u00b7 '+p.sub+'</p>'+
+          '<p style="font-size:13px; color:'+(done?col.icon:'var(--text2)')+'; margin:1px 0 0;">'+fmtTime(p.time)+' \u00b7 '+p.sub+'</p>'+
         '</div>'+
         '<div class="checkbox" style="width:25px; height:25px; border-radius:50%; border:2px solid '+(done?col.stroke:'var(--border2)')+'; background:'+(done?col.stroke:'transparent')+'; display:flex; align-items:center; justify-content:center; flex-shrink:0;">'+(done?'<span class="check-pop" style="display:inline-flex;">'+svgIcon('check',15,'#fff')+'</span>':'')+'</div>';
       row.addEventListener('click', () => {
