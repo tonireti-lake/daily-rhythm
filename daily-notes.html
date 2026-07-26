@@ -90,6 +90,14 @@
   .todo.done .txt { text-decoration:line-through; color:var(--text2); }
   .todo .meta { font-size:11px; color:var(--text3); margin-top:2px; }
   .todo .del { background:transparent; border:none; color:var(--text3); cursor:pointer; padding:2px 6px; font-size:16px; line-height:1; }
+  .tag-chip { font-size:12px; padding:4px 11px; border-radius:14px; background:var(--surface2); color:var(--text2); border:0.5px solid var(--border2); cursor:pointer; user-select:none; }
+  .tag-chip.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .tag-chip .cnt { opacity:0.7; margin-left:4px; }
+  .coll-entry { border:0.5px solid var(--border); border-radius:var(--radius-md); padding:12px 14px; margin-bottom:10px; background:var(--surface); }
+  .coll-entry .coll-date { font-size:12px; color:var(--accent); font-weight:600; cursor:pointer; margin-bottom:6px; display:inline-block; }
+  .coll-entry .coll-body { font-size:14px; line-height:1.6; color:var(--text); }
+  .coll-entry .coll-body h3 { font-size:15px; margin:8px 0 4px; }
+  .coll-mark { background:#FDF3C7; padding:0 2px; border-radius:3px; }
   .todo .notebtn { background:transparent; border:none; color:var(--text3); cursor:pointer; padding:2px 6px; line-height:1; display:flex; align-items:center; }
   .todo .notebtn.has-note { color:var(--accent); }
   .todo .notebtn svg { width:16px; height:16px; }
@@ -149,17 +157,35 @@
 
   <div class="panel">
     <h2>Notes</h2>
-    <div class="toolbar" id="toolbar">
-      <button data-cmd="bold" title="Bold" style="font-weight:700;">B</button>
-      <button data-cmd="italic" title="Italic" style="font-style:italic;">I</button>
-      <button data-cmd="underline" title="Underline" style="text-decoration:underline;">U</button>
-      <button data-cmd="formatBlock" data-val="h3" title="Heading">H</button>
-      <button data-cmd="insertUnorderedList" title="Bullet list">&#8226; List</button>
-      <button data-cmd="insertOrderedList" title="Numbered list">1. List</button>
-      <button data-cmd="removeFormat" title="Clear formatting">Clear</button>
+    <div id="findBar" style="margin-bottom:12px;">
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input type="text" id="noteSearch" placeholder="Search all notes..." style="flex:1; min-width:160px;" />
+        <button id="searchBtn" title="Search notes">Search</button>
+        <button id="clearFind" style="display:none;">Back to today</button>
+      </div>
+      <div id="tagBar" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;"></div>
     </div>
-    <div id="editor" class="editor" contenteditable="true" data-placeholder="Start writing today's notes..."></div>
-    <div style="margin-top:8px;"><span id="notesSaved" class="savedflag">Saved</span></div>
+
+    <div id="collectionView" style="display:none;"></div>
+
+    <div id="dayView">
+      <div class="toolbar" id="toolbar">
+        <button data-cmd="bold" title="Bold" style="font-weight:700;">B</button>
+        <button data-cmd="italic" title="Italic" style="font-style:italic;">I</button>
+        <button data-cmd="underline" title="Underline" style="text-decoration:underline;">U</button>
+        <button data-cmd="formatBlock" data-val="h3" title="Heading">H</button>
+        <button data-cmd="insertUnorderedList" title="Bullet list">&#8226; List</button>
+        <button data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+        <button data-cmd="removeFormat" title="Clear formatting">Clear</button>
+      </div>
+      <div id="editor" class="editor" contenteditable="true" data-placeholder="Start writing today's notes..."></div>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px;">
+        <label style="font-size:13px; color:var(--text2);">Tags:</label>
+        <input type="text" id="tagInput" placeholder="promises, books, reflect" style="flex:1; min-width:160px;" />
+        <span id="notesSaved" class="savedflag">Saved</span>
+      </div>
+      <p style="font-size:12px; color:var(--text3); margin:6px 0 0;">Separate tags with commas. Tap a tag chip above to see every note with that tag.</p>
+    </div>
   </div>
 
   <div class="panel">
@@ -264,6 +290,133 @@
   // todos: a single global list under 'todos' -> [{id, text, done, created, completedOn}]
   function getNotes(iso){ const n = lsGet('notes:'+iso); return n==null ? '' : n; }
   function setNotes(iso, html){ lsSet('notes:'+iso, html); pushNotes(iso, html); }
+
+  // ---- tags ----
+  function getTags(iso){ const t = lsGet('tags:'+iso); return Array.isArray(t) ? t : []; }
+  function setTags(iso, arr){ lsSet('tags:'+iso, arr); pushNotes(iso, getNotes(iso)); } // touch note-day so tags sync alongside
+  function parseTags(str){
+    return str.split(',').map(s => s.trim().toLowerCase().replace(/^#/, '')).filter(Boolean)
+      .filter((v,i,a) => a.indexOf(v)===i); // dedupe
+  }
+  // Build a { iso: [tags] } map of every tagged day, for syncing.
+  function collectAllTagsMap(){
+    const map = {};
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.indexOf(PREFIX+'tags:')===0){
+        const iso = k.slice((PREFIX+'tags:').length);
+        try { const arr = JSON.parse(localStorage.getItem(k)); if(Array.isArray(arr) && arr.length) map[iso] = arr; } catch(e){}
+      }
+    }
+    return map;
+  }
+  // Gather every tag across all days with a count of how many notes use it.
+  function allTags(){
+    const counts = {};
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.indexOf(PREFIX+'tags:')===0){
+        let arr; try { arr = JSON.parse(localStorage.getItem(k)); } catch(e){ arr = []; }
+        if(Array.isArray(arr)) arr.forEach(t => { counts[t] = (counts[t]||0)+1; });
+      }
+    }
+    return counts;
+  }
+  // All note days (iso + html), newest first, optionally filtered by a predicate.
+  function allNoteDays(){
+    const days = [];
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && k.indexOf(PREFIX+'notes:')===0){
+        const iso = k.slice((PREFIX+'notes:').length);
+        let html; try { html = JSON.parse(localStorage.getItem(k)); } catch(e){ html = ''; }
+        if(html && String(html).trim()) days.push({ iso, html });
+      }
+    }
+    days.sort((a,b) => a.iso < b.iso ? 1 : -1); // newest first
+    return days;
+  }
+
+  let activeTag = null;   // currently filtered tag, or null
+  let activeSearch = '';  // current search string, or ''
+
+  function renderTagBar(){
+    const bar = document.getElementById('tagBar');
+    if(!bar) return;
+    const counts = allTags();
+    const tags = Object.keys(counts).sort();
+    bar.innerHTML = '';
+    if(tags.length === 0){
+      bar.innerHTML = '<span style="font-size:12px; color:var(--text3);">No tags yet. Add tags to a note below to start grouping.</span>';
+      return;
+    }
+    tags.forEach(t => {
+      const chip = document.createElement('span');
+      chip.className = 'tag-chip' + (activeTag===t ? ' active' : '');
+      chip.innerHTML = '#'+escapeHtml(t)+'<span class="cnt">'+counts[t]+'</span>';
+      chip.addEventListener('click', () => {
+        if(activeTag === t){ exitCollection(); }
+        else { activeTag = t; activeSearch=''; document.getElementById('noteSearch').value=''; showCollectionForTag(t); }
+      });
+      bar.appendChild(chip);
+    });
+  }
+
+  function stripHtml(html){ const d = document.createElement('div'); d.innerHTML = html; return d.textContent || d.innerText || ''; }
+
+  function showCollectionForTag(tag){
+    const days = allNoteDays().filter(d => getTags(d.iso).indexOf(tag) !== -1);
+    renderCollection(days, 'Notes tagged #'+tag, null);
+  }
+
+  function runSearch(q){
+    activeSearch = q; activeTag = null;
+    const needle = q.toLowerCase();
+    const days = allNoteDays().filter(d => stripHtml(d.html).toLowerCase().indexOf(needle) !== -1);
+    renderCollection(days, 'Search: "'+q+'"', needle);
+  }
+
+  function renderCollection(days, heading, highlight){
+    const cv = document.getElementById('collectionView');
+    document.getElementById('dayView').style.display = 'none';
+    document.getElementById('clearFind').style.display = 'inline-block';
+    cv.style.display = 'block';
+    let html = '<p style="font-size:14px; color:var(--text2); margin:0 0 12px;">'+escapeHtml(heading)+' \u00b7 '+days.length+' note'+(days.length===1?'':'s')+'</p>';
+    if(days.length === 0){
+      html += '<p class="empty" style="padding:12px 0;">Nothing found.</p>';
+    }
+    days.forEach(d => {
+      let body = d.html;
+      if(highlight){
+        // highlight matches in the plain-text-ish rendering (simple, tag-safe-ish)
+        const plain = stripHtml(d.html);
+        const idx = plain.toLowerCase().indexOf(highlight);
+        if(idx !== -1){
+          const start = Math.max(0, idx-60), end = Math.min(plain.length, idx+highlight.length+120);
+          let snip = (start>0?'\u2026':'') + plain.slice(start, end) + (end<plain.length?'\u2026':'');
+          const re = new RegExp('('+highlight.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');
+          body = escapeHtml(snip).replace(re, '<span class="coll-mark">$1</span>');
+        } else { body = d.html; }
+      }
+      const tags = getTags(d.iso);
+      const tagStr = tags.length ? ' <span style="font-size:11px; color:var(--text3);">'+tags.map(t=>'#'+escapeHtml(t)).join(' ')+'</span>' : '';
+      html += '<div class="coll-entry"><span class="coll-date" data-iso="'+d.iso+'">'+fmtDate(d.iso)+'</span>'+tagStr+'<div class="coll-body">'+body+'</div></div>';
+    });
+    cv.innerHTML = html;
+    // clicking a date jumps to that day
+    cv.querySelectorAll('.coll-date').forEach(el => {
+      el.addEventListener('click', () => { selectedISO = el.getAttribute('data-iso'); exitCollection(); renderAll(); });
+    });
+  }
+
+  function exitCollection(){
+    activeTag = null; activeSearch = '';
+    document.getElementById('collectionView').style.display = 'none';
+    document.getElementById('dayView').style.display = 'block';
+    document.getElementById('clearFind').style.display = 'none';
+    document.getElementById('noteSearch').value = '';
+    renderTagBar();
+  }
   function getTodos(){ return lsGet('todos') || []; }
   function setTodos(list){ lsSet('todos', list); pushTodos(list); }
 
@@ -296,7 +449,7 @@
     // Snapshot what we're sending, but DON'T clear pending yet \u2014 only clear on success.
     const notesSnapshot = Object.assign({}, pending.notes);
     const sendTodos = pending.todos;
-    const payload = { kind:'notes', notes: notesSnapshot, todos: sendTodos ? getTodos() : null };
+    const payload = { kind:'notes', notes: notesSnapshot, todos: sendTodos ? getTodos() : null, tags: collectAllTagsMap() };
 
     fetch(SYNC_URL, { method:'POST', body:JSON.stringify(payload), headers:{'Content-Type':'text/plain;charset=utf-8'} })
       .then(r => r.json())
@@ -344,6 +497,7 @@
       if(res && res.ok){
         // Only overwrite a local day if we have nothing pending for it (protect unsaved edits).
         if(res.notes){ Object.keys(res.notes).forEach(iso => { if(!(iso in pending.notes)) lsSet('notes:'+iso, res.notes[iso]); }); }
+        if(res.tags){ Object.keys(res.tags).forEach(iso => { if(!(iso in pending.notes)){ const arr = res.tags[iso]; if(Array.isArray(arr)) lsSet('tags:'+iso, arr); } }); }
         if(Array.isArray(res.todos) && !pending.todos){ lsSet('todos', res.todos); }
         setSyncStatus(hasPending() ? 'Synced, finishing saves\u2026' : 'Synced \u00b7 '+new Date().toLocaleTimeString(), hasPending() ? '#EF9F27' : '#1D9E75');
         renderAll();
@@ -378,6 +532,9 @@
   function renderNotes(){
     const ed = document.getElementById('editor');
     ed.innerHTML = getNotes(selectedISO) || '';
+    const ti = document.getElementById('tagInput');
+    if(ti) ti.value = getTags(selectedISO).join(', ');
+    renderTagBar();
   }
   function wireNotes(){
     const ed = document.getElementById('editor');
@@ -388,6 +545,24 @@
         const f=document.getElementById('notesSaved'); f.style.opacity='1'; setTimeout(()=>f.style.opacity='0',1200);
       }, 500);
     });
+    // tag input: save on change/blur
+    const ti = document.getElementById('tagInput');
+    if(ti){
+      const saveTags = () => {
+        const arr = parseTags(ti.value);
+        setTags(selectedISO, arr);
+        ti.value = arr.join(', ');
+        renderTagBar();
+      };
+      ti.addEventListener('blur', saveTags);
+      ti.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); ti.blur(); } });
+    }
+    // search
+    const search = document.getElementById('noteSearch');
+    const doSearch = () => { const q = search.value.trim(); if(q) runSearch(q); };
+    document.getElementById('searchBtn').addEventListener('click', doSearch);
+    search.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); doSearch(); } });
+    document.getElementById('clearFind').addEventListener('click', exitCollection);
     // toolbar
     document.getElementById('toolbar').querySelectorAll('button').forEach(btn => {
       btn.addEventListener('mousedown', e => e.preventDefault()); // keep selection
@@ -708,7 +883,7 @@
       const notes = {};
       batch.forEach(k => { const iso = k.slice((PREFIX+'notes:').length); try { notes[iso] = JSON.parse(localStorage.getItem(k)); } catch(e){} });
       setSyncStatus('Uploading batch '+(ci+1)+' of '+chunks.length+'\u2026', '#378ADD');
-      fetch(SYNC_URL, {method:'POST', body:JSON.stringify({kind:'notes', notes:notes, todos:null}), headers:{'Content-Type':'text/plain;charset=utf-8'}})
+      fetch(SYNC_URL, {method:'POST', body:JSON.stringify({kind:'notes', notes:notes, todos:null, tags: collectAllTagsMap()}), headers:{'Content-Type':'text/plain;charset=utf-8'}})
         .then(r=>r.json()).then(res=>{
           if(res && res.ok){ ci++; setTimeout(sendChunk, 400); }
           else { setSyncStatus('Batch '+(ci+1)+' failed: '+((res&&res.error)||'unknown')+' \u2014 stopped.', '#A32D2D'); }
