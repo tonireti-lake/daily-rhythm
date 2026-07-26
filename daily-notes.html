@@ -170,6 +170,7 @@
       <button id="saveUrl">Save URL</button>
       <button id="syncNow">Sync now</button>
       <button id="forceUpload" title="Push everything on this device up to the Sheet">Force upload all</button>
+      <button id="stopSync" title="Stop syncing / break a retry loop">Stop sync</button>
       <button id="exportBtn">Export backup</button>
       <button id="importBtn">Import backup</button>
       <input type="file" id="importFile" accept="application/json" style="display:none;" />
@@ -272,6 +273,7 @@
   let pending = { notes:{}, todos:false };   // what still needs to reach the Sheet
   let inFlight = false;                        // a push is currently running
   let retryDelay = 0;                          // grows on failure
+  let syncStopped = false;                     // user pressed Stop
 
   function setSyncStatus(t,c){ document.getElementById('syncText').textContent=t; document.getElementById('syncDot').style.background=c||'var(--text3)'; }
 
@@ -287,7 +289,7 @@
   }
 
   function flush(){
-    if(!SYNC_URL || inFlight || !hasPending()) return;
+    if(!SYNC_URL || inFlight || syncStopped || !hasPending()) return;
     inFlight = true;
     setSyncStatus('Saving\u2026', '#378ADD');
 
@@ -318,6 +320,7 @@
   }
 
   function failAndRetry(){
+    if(syncStopped) return;
     // Keep everything in `pending`; back off and try again automatically.
     retryDelay = Math.min(retryDelay ? retryDelay * 2 : 2000, 30000);
     setSyncStatus('Save failed \u2014 retrying in '+Math.round(retryDelay/1000)+'s (nothing lost)', '#EF9F27');
@@ -676,21 +679,50 @@
   document.getElementById('todoAddBtn').addEventListener('click', addTodo);
   document.getElementById('todoInput').addEventListener('keydown', e=>{ if(e.key==='Enter') addTodo(); });
   document.getElementById('saveUrl').addEventListener('click', ()=>{ const v=document.getElementById('syncUrl').value.trim(); SYNC_URL=v; lsSet('syncUrl', v); if(v){ msg('Sync URL saved.', true); pull(); } else { setSyncStatus('Not connected — running on this device only.'); msg('Sync URL cleared.', true); } });
-  document.getElementById('syncNow').addEventListener('click', ()=>{ pull(); });
+  document.getElementById('syncNow').addEventListener('click', ()=>{ syncStopped=false; pull(); });
   document.getElementById('forceUpload').addEventListener('click', ()=>{
     if(!SYNC_URL){ msg('Set a sync URL first.', false); return; }
-    // Queue every local note day and the full todo list for upload.
-    let count = 0;
+    syncStopped=false;
+    // Gather every local note day.
+    const dayKeys = [];
     for(let i=0;i<localStorage.length;i++){
       const k = localStorage.key(i);
-      if(k && k.indexOf(PREFIX+'notes:')===0){
-        const iso = k.slice((PREFIX+'notes:').length);
-        try { pending.notes[iso] = JSON.parse(localStorage.getItem(k)); count++; } catch(e){}
-      }
+      if(k && k.indexOf(PREFIX+'notes:')===0) dayKeys.push(k);
     }
-    pending.todos = true;
-    msg('Uploading '+count+' note day'+(count===1?'':'s')+' and your to-dos to the Sheet\u2026', true);
-    scheduleFlush(100);
+    // Upload in small chunks so no single request is heavy enough to time out.
+    const CHUNK = 8;
+    const chunks = [];
+    for(let i=0;i<dayKeys.length;i+=CHUNK) chunks.push(dayKeys.slice(i, i+CHUNK));
+    let ci = 0, total = dayKeys.length;
+    msg('Uploading '+total+' note day'+(total===1?'':'s')+' in '+chunks.length+' small batch'+(chunks.length===1?'':'es')+'\u2026', true);
+
+    function sendChunk(){
+      if(syncStopped){ msg('Upload stopped.', false); return; }
+      if(ci >= chunks.length){
+        // finally push the todos on their own
+        pending.todos = true; scheduleFlush(100);
+        msg('All '+total+' note days queued. Finishing to-dos\u2026', true);
+        return;
+      }
+      const batch = chunks[ci];
+      const notes = {};
+      batch.forEach(k => { const iso = k.slice((PREFIX+'notes:').length); try { notes[iso] = JSON.parse(localStorage.getItem(k)); } catch(e){} });
+      setSyncStatus('Uploading batch '+(ci+1)+' of '+chunks.length+'\u2026', '#378ADD');
+      fetch(SYNC_URL, {method:'POST', body:JSON.stringify({kind:'notes', notes:notes, todos:null}), headers:{'Content-Type':'text/plain;charset=utf-8'}})
+        .then(r=>r.json()).then(res=>{
+          if(res && res.ok){ ci++; setTimeout(sendChunk, 400); }
+          else { setSyncStatus('Batch '+(ci+1)+' failed: '+((res&&res.error)||'unknown')+' \u2014 stopped.', '#A32D2D'); }
+        })
+        .catch(()=> setSyncStatus('Batch '+(ci+1)+' network error \u2014 stopped. Tap Force upload to resume.', '#A32D2D'));
+    }
+    sendChunk();
+  });
+  document.getElementById('stopSync').addEventListener('click', ()=>{
+    syncStopped = true;
+    clearTimeout(pushTimer);
+    inFlight = false;
+    setSyncStatus('Sync paused. Your data is safe locally.', '#EF9F27');
+    msg('Stopped. Nothing was lost \u2014 local data is intact.', true);
   });
   document.getElementById('exportBtn').addEventListener('click', exportData);
   document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
